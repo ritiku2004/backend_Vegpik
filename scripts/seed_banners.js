@@ -22,7 +22,7 @@ const BASE_BANNERS = [
   {
     title: 'Daily Essentials\nFree Delivery',
     subtitle: 'Superfast Service',
-    description: 'Free home delivery on orders above ₹499',
+    description: 'Free home delivery on orders above AED 499',
     image_url: 'http://localhost:3000/uploads/banners/banner-02.webp',
     background_color: '#EFF6FF',
     text_color: '#2563EB',

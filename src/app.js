@@ -135,8 +135,8 @@ app.get('/diagnostics', (req, res) => {
     './uploads',
     '../uploads',
     '../../uploads',
-    '/home/u807549365/domains/media.freshsabjihub.com/public_html',
-    '/home/u807549365/domains/api.freshsabjihub.com/media',
+    '/home/u807549365/domains/media.vegpik.com/public_html',
+    '/home/u807549365/domains/api.vegpik.com/media',
     '../media',
     '../../media'
   ];

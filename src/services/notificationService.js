@@ -115,7 +115,7 @@ const sendAdminOrderArrived = async (orderId) => {
 
 const sendWelcomeNotification = async (userId) => {
   try {
-    const title = 'Welcome to Fresh Sabji Hub! 🥬';
+    const title = 'Welcome to Vegpik! 🥬';
     const body = 'Get fresh farm-to-table groceries delivered straight to your doorstep.';
     const data = {
       type: 'welcome'

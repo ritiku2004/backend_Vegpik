@@ -30,7 +30,7 @@ const authenticateJWT = async (req, res, next) => {
   if (token.startsWith('mock_jwt_token_')) {
     try {
       const phone = token.replace('mock_jwt_token_', '');
-      const email = `${phone}@freshsabjihub.com`;
+      const email = `${phone}@vegpik.com`;
       const { userModel } = require('../models');
       let user = await userModel.getUserByPhone(phone);
       if (!user) {

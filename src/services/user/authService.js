@@ -6,7 +6,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
 
 const generateAndSendOtp = async (email) => {
   // Generate a random 6-digit OTP (123456 for test domains)
-  const otpCode = email.endsWith('@freshsabjihub.com') ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
+  const otpCode = email.endsWith('@vegpik.com') ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
   
   // Set expiry to 5 minutes from now
   const expiresAt = new Date(Date.now() + 5 * 60000);
@@ -14,7 +14,7 @@ const generateAndSendOtp = async (email) => {
   await otpModel.saveOtp(email, otpCode, expiresAt);
   
   // Send OTP via email unless it's a test/mobile domain
-  if (!email.endsWith('@freshsabjihub.com')) {
+  if (!email.endsWith('@vegpik.com')) {
     await emailSender.sendOtpEmail(email, otpCode);
   }
   

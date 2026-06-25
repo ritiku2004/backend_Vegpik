@@ -13,7 +13,7 @@ async function run() {
     `);
     console.log('Admins table created.');
 
-    const email = 'admin@freshsabjihub.com';
+    const email = 'admin@vegpik.com';
     const password = 'password123';
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
@@ -21,7 +21,7 @@ async function run() {
     const [existing] = await pool.query('SELECT id FROM admins WHERE email = ?', [email]);
     if (existing.length === 0) {
       await pool.query('INSERT INTO admins (email, password_hash) VALUES (?, ?)', [email, hash]);
-      console.log('Default admin seeded: admin@freshsabjihub.com / password123');
+      console.log('Default admin seeded: admin@vegpik.com / password123');
     } else {
       console.log('Admin already exists.');
     }

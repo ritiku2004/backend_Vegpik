@@ -49,7 +49,7 @@ const createOrder = async (req, res) => {
           if (keysConfigured) {
             const options = {
               amount: amountPaise,
-              currency: 'INR',
+              currency: 'AED',
               receipt: `receipt_prepay_${Date.now()}`,
             };
             const rzpOrder = await razorpay.orders.create(options);
@@ -313,7 +313,7 @@ const retryPayment = async (req, res) => {
     const amountPaise = Math.round(order.total_amount * 100);
     const options = {
       amount: amountPaise,
-      currency: 'INR',
+      currency: 'AED',
       receipt: `receipt_retry_${order.id}`,
     };
     const rzpOrder = await razorpay.orders.create(options);

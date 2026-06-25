@@ -8,7 +8,7 @@ const isValidGuestId = (guestId) => {
 const resolveUserId = async (userId) => {
   if (typeof userId === 'string' && userId.startsWith('mock_user_')) {
     const phone = userId.replace('mock_user_', '');
-    const email = `${phone}@freshsabjihub.com`;
+    const email = `${phone}@vegpik.com`;
     let user = await userModel.getUserByPhone(phone);
     if (!user) {
       user = await userModel.getUserByEmail(email);

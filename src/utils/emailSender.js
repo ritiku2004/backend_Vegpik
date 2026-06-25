@@ -14,13 +14,13 @@ const transporter = nodemailer.createTransport({
 
 const sendOtpEmail = async (toEmail, otpCode) => {
   const mailOptions = {
-    from: '"Fresh Sabji Hub" <security@freshsabjihub.com>',
+    from: '"Vegpik" <security@vegpik.com>',
     to: toEmail,
-    subject: 'Your Login OTP - Fresh Sabji Hub',
+    subject: 'Your Login OTP - Vegpik',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
         <div style="background-color: #4CAF50; padding: 20px; text-align: center;">
-          <h1 style="color: white; margin: 0;">Fresh Sabji Hub</h1>
+          <h1 style="color: white; margin: 0;">Vegpik</h1>
         </div>
         <div style="padding: 30px; background-color: #ffffff;">
           <h2 style="color: #333333; margin-top: 0;">Login OTP Verification</h2>
@@ -28,7 +28,7 @@ const sendOtpEmail = async (toEmail, otpCode) => {
             Hello,
           </p>
           <p style="color: #555555; font-size: 16px; line-height: 1.5;">
-            Thank you for choosing Fresh Sabji Hub! To securely log into your account, please use the One-Time Password (OTP) below:
+            Thank you for choosing Vegpik! To securely log into your account, please use the One-Time Password (OTP) below:
           </p>
           <div style="text-align: center; margin: 30px 0;">
             <span style="display: inline-block; background-color: #f4f4f4; border: 1px dashed #4CAF50; padding: 15px 30px; font-size: 28px; font-weight: bold; color: #4CAF50; letter-spacing: 5px; border-radius: 8px;">
@@ -44,7 +44,7 @@ const sendOtpEmail = async (toEmail, otpCode) => {
         </div>
         <div style="background-color: #f9f9f9; padding: 15px; text-align: center; border-top: 1px solid #e0e0e0;">
           <p style="color: #888888; font-size: 12px; margin: 0;">
-            &copy; ${new Date().getFullYear()} Fresh Sabji Hub. All rights reserved.
+            &copy; ${new Date().getFullYear()} Vegpik. All rights reserved.
           </p>
         </div>
       </div>
@@ -66,23 +66,23 @@ const supportTransporter = nodemailer.createTransport({
   port: parseInt(process.env.SMTP_PORT, 10),
   secure: true,
   auth: {
-    user: process.env.SUPPORT_SMTP_USER || 'support@freshsabjihub.com',
+    user: process.env.SUPPORT_SMTP_USER || 'support@vegpik.com',
     pass: process.env.SUPPORT_SMTP_PASS || 'Support@1430',
   },
 });
 
 const sendSupportQueryEmail = async ({ userId, name, email, phone, subject, description }) => {
-  const supportEmail = process.env.SUPPORT_SMTP_USER || 'support@freshsabjihub.com';
+  const supportEmail = process.env.SUPPORT_SMTP_USER || 'support@vegpik.com';
   
   const mailOptions = {
-    from: `"Fresh Sabji Hub Support Portal" <${supportEmail}>`,
+    from: `"Vegpik Support Portal" <${supportEmail}>`,
     to: supportEmail,
     replyTo: email && email !== 'No email provided' ? email : undefined,
     subject: `[Support Query] - ${subject}`,
     html: `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <div style="background: linear-gradient(135deg, #10B981, #059669); padding: 24px; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px;">Fresh Sabji Hub</h1>
+          <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px;">Vegpik</h1>
           <p style="color: #D1FAE5; margin: 4px 0 0 0; font-size: 14px;">Customer Support Request</p>
         </div>
         <div style="padding: 30px; background-color: #ffffff;">
@@ -111,7 +111,7 @@ const sendSupportQueryEmail = async ({ userId, name, email, phone, subject, desc
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #64748B; font-weight: 600; font-size: 14px;">Submitted At:</td>
-              <td style="padding: 8px 0; color: #1E293B; font-size: 14px;">${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} (IST)</td>
+              <td style="padding: 8px 0; color: #1E293B; font-size: 14px;">${new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' })} (GST)</td>
             </tr>
           </table>
 
@@ -122,7 +122,7 @@ const sendSupportQueryEmail = async ({ userId, name, email, phone, subject, desc
         </div>
         <div style="background-color: #F8FAFC; padding: 16px; text-align: center; border-top: 1px solid #E2E8F0;">
           <p style="color: #94A3B8; font-size: 11px; margin: 0;">
-            This query was submitted via the contact form in the Fresh Sabji Hub mobile app.
+            This query was submitted via the contact form in the Vegpik mobile app.
           </p>
         </div>
       </div>
