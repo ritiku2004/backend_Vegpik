@@ -146,7 +146,7 @@ const calculateOrderDetails = async (userId, shopId, addressId, items, tipAmount
   // 4. Calculate final fees, tax and grand total
   const calculatedDeliveryFee = subtotal === 0 ? 0 : (subtotal >= Number(config.free_delivery_threshold) ? 0 : (Number(config.delivery_base_charge) + (distance * Number(config.delivery_distance_rate))));
   const calculatedHandlingFee = subtotal === 0 ? 0 : (subtotal >= Number(config.free_handling_threshold) ? 0 : Number(config.handling_fee));
-  const calculatedTaxAmount = 0; // GST completely removed
+  const calculatedTaxAmount = 0; // Tax disabled — UAE VAT not applicable
   const calculatedGrandTotal = subtotal + calculatedDeliveryFee + calculatedHandlingFee + (Number(tipAmount) || 0) - (Number(discountAmount) || 0);
 
   return {
@@ -173,10 +173,7 @@ const createOrder = async (
   handlingFee = 0, 
   deliveryFee = 0, 
   paymentMethod = 'COD', 
-  paymentStatus = 'PENDING',
-  razorpayPaymentId = null,
-  razorpayOrderId = null,
-  razorpaySignature = null
+  paymentStatus = 'PENDING'
 ) => {
   try {
     const details = await calculateOrderDetails(userId, shopId, addressId, items, tipAmount, discountAmount);
@@ -194,9 +191,8 @@ const createOrder = async (
         `INSERT INTO orders (
           order_number, user_id, shop_id, address_id, total_amount, 
           tip_amount, discount_amount, handling_fee, delivery_fee, tax_amount, 
-          status, payment_status, payment_method, razorpay_payment_id, razorpay_order_id, 
-          razorpay_signature, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          status, payment_status, payment_method, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           orderNumber, 
           userId, 
@@ -211,9 +207,6 @@ const createOrder = async (
           initialStatus, 
           paymentStatus,
           paymentMethod,
-          razorpayPaymentId,
-          razorpayOrderId,
-          razorpaySignature,
           now
         ]
       );
@@ -285,129 +278,6 @@ const getOrdersByUserId = async (userId) => {
   return orders;
 };
 
-const updateRazorpayOrderId = async (orderId, razorpayOrderId) => {
-  const isOrderNumber = typeof orderId === 'string' && orderId.startsWith('ORD');
-  const queryField = isOrderNumber ? 'order_number' : 'id';
-  const [result] = await pool.query(
-    `UPDATE orders SET razorpay_order_id = ? WHERE ${queryField} = ?`,
-    [razorpayOrderId, orderId]
-  );
-  return result.affectedRows > 0;
-};
-
-const verifyAndConfirmPayment = async (orderId, paymentId, signature) => {
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-    
-    const isOrderNumber = typeof orderId === 'string' && orderId.startsWith('ORD');
-    const queryField = isOrderNumber ? 'order_number' : 'id';
-
-    // Lock row to prevent race conditions & duplicate payment operations
-    const [orders] = await connection.query(
-      `SELECT * FROM orders WHERE ${queryField} = ? FOR UPDATE`,
-      [orderId]
-    );
-
-    if (orders.length === 0) {
-      throw new Error('Order not found');
-    }
-
-    const order = orders[0];
-
-    // If order is already paid, commit and return immediately (idempotency check)
-    if (order.payment_status === 'Paid') {
-      await connection.commit();
-      return { success: true, alreadyPaid: true, order };
-    }
-
-    // Update the order details using exact database integer id
-    await connection.query(
-      'UPDATE orders SET status = ?, payment_status = ?, razorpay_payment_id = ?, razorpay_signature = ? WHERE id = ?',
-      ['Placed', 'Paid', paymentId, signature, order.id]
-    );
-
-    // Fetch items to reduce inventory using exact database integer id
-    const [items] = await connection.query(
-      'SELECT product_id, quantity FROM order_items WHERE order_id = ?',
-      [order.id]
-    );
-
-    // Decrement stock_quantity in products table
-    for (const item of items) {
-      await connection.query(
-        'UPDATE products SET stock_quantity = GREATEST(0, stock_quantity - ?) WHERE id = ?',
-        [item.quantity, item.product_id]
-      );
-    }
-
-    // Clear the user's cart on successful payment confirmation
-    await connection.query('DELETE FROM carts WHERE user_id = ?', [order.user_id]);
-
-    await connection.commit();
-    return { 
-      success: true, 
-      alreadyPaid: false, 
-      order: { 
-        ...order, 
-        status: 'Processing', 
-        payment_status: 'Paid', 
-        razorpay_payment_id: paymentId, 
-        razorpay_signature: signature 
-      } 
-    };
-  } catch (error) {
-    console.error('Original Payment Verification Transaction Error:', error);
-    try {
-      await connection.rollback();
-    } catch (rollbackError) {
-      console.error('Rollback failed:', rollbackError);
-    }
-    throw error;
-  } finally {
-    connection.release();
-  }
-};
-
-const recordPaymentLog = async (orderId, razorpayOrderId, razorpayPaymentId, eventType, payload) => {
-  let dbOrderId = orderId;
-  if (typeof orderId === 'string' && orderId.startsWith('ORD')) {
-    const [rows] = await pool.query('SELECT id FROM orders WHERE order_number = ?', [orderId]);
-    if (rows.length > 0) {
-      dbOrderId = rows[0].id;
-    }
-  }
-  const [result] = await pool.query(
-    'INSERT INTO payment_logs (order_id, razorpay_order_id, razorpay_payment_id, event_type, payload) VALUES (?, ?, ?, ?, ?)',
-    [
-      dbOrderId, 
-      razorpayOrderId, 
-      razorpayPaymentId, 
-      eventType, 
-      typeof payload === 'string' ? payload : JSON.stringify(payload)
-    ]
-  );
-  return result.insertId;
-};
-
-const getPaymentLogsByOrderId = async (orderId) => {
-  const isOrderNumber = typeof orderId === 'string' && orderId.startsWith('ORD');
-  const queryField = isOrderNumber ? 'order_number' : 'id';
-  
-  const [rows] = await pool.query(`
-    SELECT pl.* FROM payment_logs pl
-    JOIN orders o ON pl.order_id = o.id
-    WHERE o.${queryField} = ?
-    ORDER BY pl.created_at DESC
-  `, [orderId]);
-  return rows;
-};
-
-const getOrderByRazorpayOrderId = async (razorpayOrderId) => {
-  const [rows] = await pool.query('SELECT * FROM orders WHERE razorpay_order_id = ?', [razorpayOrderId]);
-  return rows.length > 0 ? rows[0] : null;
-};
-
 module.exports = {
   getAllOrders,
   getOrderById,
@@ -415,10 +285,5 @@ module.exports = {
   updateOrderStatus,
   createOrder,
   getOrdersByUserId,
-  updateRazorpayOrderId,
-  verifyAndConfirmPayment,
-  recordPaymentLog,
-  getPaymentLogsByOrderId,
-  getOrderByRazorpayOrderId,
   calculateOrderDetails
 };

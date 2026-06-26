@@ -46,6 +46,13 @@ const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Order not found or update failed' });
     }
 
+    // Generate receipt if status is Paid or Delivered
+    if (payment_status === 'Paid' || status === 'Delivered') {
+      const { receiptService } = require('../../services');
+      receiptService.generateAndStoreReceipt(orderId)
+        .catch(receiptErr => console.error('Failed to generate receipt:', receiptErr));
+    }
+
     // Map the admin status selection to user notification status
     // Status mappings from admin frontend dashboard could be "Delivered", "Cancelled", "On the Way", "Processing", etc.
     const normalizedStatus = status.toLowerCase().replace(/ /g, '_');

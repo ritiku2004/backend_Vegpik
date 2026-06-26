@@ -111,7 +111,7 @@ const sendSupportQueryEmail = async ({ userId, name, email, phone, subject, desc
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #64748B; font-weight: 600; font-size: 14px;">Submitted At:</td>
-              <td style="padding: 8px 0; color: #1E293B; font-size: 14px;">${new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' })} (GST)</td>
+              <td style="padding: 8px 0; color: #1E293B; font-size: 14px;">${new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' })} (Gulf Standard Time)</td>
             </tr>
           </table>
 

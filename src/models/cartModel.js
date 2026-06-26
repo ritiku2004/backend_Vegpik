@@ -94,7 +94,7 @@ const getCartByUserId = async (userId, activeShopId = null, activeAddressId = nu
 
     const deliveryFee = subtotal === 0 ? 0 : (subtotal >= Number(config.free_delivery_threshold) ? 0 : (Number(config.delivery_base_charge) + (distance * Number(config.delivery_distance_rate))));
     const handlingFee = subtotal === 0 ? 0 : (subtotal >= Number(config.free_handling_threshold) ? 0 : Number(config.handling_fee));
-    const taxAmount = 0; // GST completely removed
+    const taxAmount = 0; // Tax disabled — UAE VAT not applicable
     const grandTotal = subtotal + deliveryFee + handlingFee;
 
     cart.pricing = {

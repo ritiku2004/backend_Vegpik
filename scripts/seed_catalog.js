@@ -37,10 +37,10 @@ const categories = [
 ];
 
 const products = [
-  { catName: 'Fruits & Vegetables', name: 'Fresh Potato (Aloo)', price: 32, quantity: 1, quantity_type: 'kg', sku: 'PRD-POT-1', image_url: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=400&h=400&q=80' },
-  { catName: 'Fruits & Vegetables', name: 'Hybrid Tomato', price: 45, quantity: 500, quantity_type: 'g', sku: 'PRD-TOM-1', image_url: 'https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=400&h=400&q=80' },
-  { catName: 'Dairy, Bread & Eggs', name: 'Amul Taaza Toned Milk', price: 30, quantity: 500, quantity_type: 'ml', sku: 'PRD-MLK-1', image_url: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&h=400&q=80' },
-  { catName: 'Snacks & Munchies', name: 'Lay\'s Classic Salted Chips', price: 20, quantity: 50, quantity_type: 'g', sku: 'PRD-CHP-1', image_url: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=400&h=400&q=80' },
+  { catName: 'Fruits & Vegetables', name: 'Fresh Potato', price: 32, quantity: 1, quantity_type: 'kg', sku: 'PRD-POT-1', image_url: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=400&h=400&q=80' },
+  { catName: 'Fruits & Vegetables', name: 'Fresh Tomato', price: 45, quantity: 500, quantity_type: 'g', sku: 'PRD-TOM-1', image_url: 'https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=400&h=400&q=80' },
+  { catName: 'Dairy, Bread & Eggs', name: 'Fresh Full Cream Milk', price: 30, quantity: 500, quantity_type: 'ml', sku: 'PRD-MLK-1', image_url: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&h=400&q=80' },
+  { catName: 'Snacks & Munchies', name: 'Pringles Original Chips', price: 20, quantity: 50, quantity_type: 'g', sku: 'PRD-CHP-1', image_url: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=400&h=400&q=80' },
   { catName: 'Cold Drinks & Juices', name: 'Coca-Cola Zero Sugar Can', price: 40, quantity: 300, quantity_type: 'ml', sku: 'PRD-COK-1', image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=400&h=400&q=80' },
 ];
 
@@ -80,9 +80,9 @@ const seedDB = async () => {
 
     console.log('Seeding Shops...');
     const shops = [
-      { id: 1, name: 'North Warehouse', address: '123 North St', city: 'Metropolis', lat: 28.7, lng: 77.1 },
-      { id: 2, name: 'South Warehouse', address: '456 South St', city: 'Metropolis', lat: 28.5, lng: 77.2 },
-      { id: 3, name: 'Central Hub', address: '789 Central Ave', city: 'Metropolis', lat: 28.6, lng: 77.3 }
+      { id: 1, name: 'Dubai Mall Hub', address: 'Financial Centre Rd, Downtown Dubai', city: 'Dubai', lat: 25.1972, lng: 55.2744 },
+      { id: 2, name: 'Deira Warehouse', address: 'Al Ittihad Rd, Deira', city: 'Dubai', lat: 25.2854, lng: 55.3272 },
+      { id: 3, name: 'Abu Dhabi Central', address: 'Hamdan St, Abu Dhabi', city: 'Abu Dhabi', lat: 24.4539, lng: 54.3773 }
     ];
     for (const shop of shops) {
       await pool.query(

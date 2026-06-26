@@ -26,17 +26,18 @@ try {
         .replace(/^["']|["']$/g, '')
         .replace(/\\+n/g, '\n')
         .replace(/\r/g, '')
-        .replace(/\n+/g, '\n')
         .trim()
     };
 
-    app = initializeApp({
-      credential: cert(serviceAccount)
-    });
-
-    messaging = getMessaging(app);
-
-    console.log('✅ Firebase Admin initialized successfully');
+    if (!serviceAccount.privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      console.warn('⚠️ Invalid Firebase private key format. Skipping Firebase Admin initialization.');
+    } else {
+      app = initializeApp({
+        credential: cert(serviceAccount)
+      });
+      messaging = getMessaging(app);
+      console.log('✅ Firebase Admin initialized successfully');
+    }
   } else {
     console.warn(
       '⚠️ Firebase environment variables are missing. Firebase Admin not initialized.'

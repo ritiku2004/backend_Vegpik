@@ -3,9 +3,9 @@ const pool = require('../src/config/db');
 async function run() {
   try {
     const shops = [
-      ['Shop One - Downtown', '123 Downtown St', '10.0000', '20.0000', 1, 1],
-      ['Shop Two - Uptown', '456 Uptown Ave', '10.1000', '20.1000', 1, 1],
-      ['Shop Three - Suburbs', '789 Suburbia Blvd', '10.2000', '20.2000', 1, 1]
+      ['Vegpik - Dubai Marina', 'Dubai Marina Walk, Dubai', '25.0800', '55.1400', 1, 1],
+      ['Vegpik - Deira', 'Al Rigga Rd, Deira, Dubai', '25.2650', '55.3270', 1, 1],
+      ['Vegpik - Sharjah', 'King Faisal St, Sharjah', '25.3463', '55.4209', 1, 1]
     ];
     
     // Check if shops exist
