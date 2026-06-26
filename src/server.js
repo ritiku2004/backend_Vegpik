@@ -31,6 +31,18 @@ pool.getConnection()
       console.error('⚠️ Failed to ensure users.welcome_notified column exists:', schemaError.message);
     }
 
+    // Dynamically ensure products table has the type column
+    try {
+      const [columns] = await connection.query("SHOW COLUMNS FROM products LIKE 'type'");
+      if (columns.length === 0) {
+        console.log('Adding type column to products table...');
+        await connection.query("ALTER TABLE products ADD COLUMN type ENUM('general', 'trending', 'best deal') DEFAULT 'general'");
+        console.log('✅ type column added successfully');
+      }
+    } catch (schemaError) {
+      console.error('⚠️ Failed to ensure products.type column exists:', schemaError.message);
+    }
+
     // Dynamically ensure notifications table exists
     try {
       await connection.query(`
