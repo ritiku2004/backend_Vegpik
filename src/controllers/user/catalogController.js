@@ -62,16 +62,21 @@ const getNearestShop = async (req, res) => {
       }
     }
 
-    if (minDistance > 15) {
-      return responseHelper.sendError(res, 404, `Nearest shop is outside 15km radius (${minDistance.toFixed(2)} km)`);
+    if (nearestShop) {
+      const shopRadius = parseFloat(nearestShop.delivery_radius_km) || 15.0;
+      const serviceAvailable = minDistance <= shopRadius;
+      const responseData = {
+        ...nearestShop,
+        distanceKm: minDistance,
+        serviceAvailable,
+        delivery_radius_km: shopRadius
+      };
+      return responseHelper.sendSuccess(res, 200, 'Shop fetched successfully', responseData);
+    } else {
+      return responseHelper.sendError(res, 404, 'No active shops found');
     }
 
-    const responseData = {
-      ...nearestShop,
-      distanceKm: minDistance
-    };
 
-    return responseHelper.sendSuccess(res, 200, 'Nearest shop fetched successfully', responseData);
   } catch (error) {
     console.error('Error fetching nearest shop:', error);
     return responseHelper.sendError(res, 500, 'Failed to fetch nearest shop', error);

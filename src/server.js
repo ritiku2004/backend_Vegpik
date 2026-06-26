@@ -43,6 +43,30 @@ pool.getConnection()
       console.error('⚠️ Failed to ensure products.type column exists:', schemaError.message);
     }
 
+    // Dynamically ensure products table has the is_available column
+    try {
+      const [columns] = await connection.query("SHOW COLUMNS FROM products LIKE 'is_available'");
+      if (columns.length === 0) {
+        console.log('Adding is_available column to products table...');
+        await connection.query("ALTER TABLE products ADD COLUMN is_available BOOLEAN DEFAULT TRUE");
+        console.log('✅ is_available column added successfully');
+      }
+    } catch (schemaError) {
+      console.error('⚠️ Failed to ensure products.is_available column exists:', schemaError.message);
+    }
+
+    // Dynamically ensure shops table has the delivery_radius_km column
+    try {
+      const [columns] = await connection.query("SHOW COLUMNS FROM shops LIKE 'delivery_radius_km'");
+      if (columns.length === 0) {
+        console.log('Adding delivery_radius_km column to shops table...');
+        await connection.query("ALTER TABLE shops ADD COLUMN delivery_radius_km DECIMAL(5,1) DEFAULT 15.0");
+        console.log('✅ delivery_radius_km column added successfully');
+      }
+    } catch (schemaError) {
+      console.error('⚠️ Failed to ensure shops.delivery_radius_km column exists:', schemaError.message);
+    }
+
     // Dynamically ensure notifications table exists
     try {
       await connection.query(`

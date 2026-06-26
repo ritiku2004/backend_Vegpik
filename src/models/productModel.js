@@ -25,7 +25,7 @@ const getProductById = async (id) => {
   return product;
 };
 const createProduct = async (productData, featuresData = []) => {
-  const { category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active, discount_percentage, type } = productData;
+  const { category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active, discount_percentage, type, is_available } = productData;
   
   const connection = await pool.getConnection();
   try {
@@ -33,9 +33,9 @@ const createProduct = async (productData, featuresData = []) => {
 
     const [result] = await connection.query(
       'INSERT INTO products ' +
-      '(category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active, discount_percentage, type) ' +
-      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active ?? true, discount_percentage ?? 0.00, type || 'general']
+      '(category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active, discount_percentage, type, is_available) ' +
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active ?? true, discount_percentage ?? 0.00, type || 'general', is_available ?? true]
     );
     const productId = result.insertId;
 
@@ -64,7 +64,7 @@ const createProduct = async (productData, featuresData = []) => {
 };
 
 const updateProduct = async (id, productData, featuresData = null) => {
-  const { category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active, discount_percentage, type } = productData;
+  const { category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active, discount_percentage, type, is_available } = productData;
   
   const connection = await pool.getConnection();
   try {
@@ -72,9 +72,9 @@ const updateProduct = async (id, productData, featuresData = null) => {
 
     await connection.query(
       'UPDATE products ' +
-      'SET category_id=?, name=?, description=?, brand=?, mrp_price=?, quantity=?, quantity_type=?, sku=?, image_url=?, is_active=?, discount_percentage=?, type=? ' +
+      'SET category_id=?, name=?, description=?, brand=?, mrp_price=?, quantity=?, quantity_type=?, sku=?, image_url=?, is_active=?, discount_percentage=?, type=?, is_available=? ' +
       'WHERE id=?',
-      [category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active ?? true, discount_percentage ?? 0.00, type || 'general', id]
+      [category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active ?? true, discount_percentage ?? 0.00, type || 'general', is_available ?? true, id]
     );
 
     // Sync to product_categories

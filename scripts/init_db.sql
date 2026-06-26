@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS products (
     discount_percentage DECIMAL(10, 2) DEFAULT 0.00,
     stock_quantity INT DEFAULT 100,
     type ENUM('general', 'trending', 'best deal') DEFAULT 'general',
+    is_available BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT
