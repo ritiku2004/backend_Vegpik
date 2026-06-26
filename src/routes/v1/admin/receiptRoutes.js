@@ -5,17 +5,14 @@ const { receiptModel } = require('../../../models');
 router.get('/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
-    let receipt = await receiptModel.getReceiptByOrderId(orderId);
-    
-    if (!receipt) {
-      try {
-        const { receiptService } = require('../../../services');
-        await receiptService.generateAndStoreReceipt(orderId);
-        receipt = await receiptModel.getReceiptByOrderId(orderId);
-      } catch (genErr) {
-        console.error('Failed to auto-generate receipt:', genErr);
-      }
+    const { receiptService } = require('../../../services');
+    try {
+      await receiptService.generateAndStoreReceipt(orderId);
+    } catch (genErr) {
+      console.error('Failed to generate receipt:', genErr);
     }
+    
+    const receipt = await receiptModel.getReceiptByOrderId(orderId);
     
     if (!receipt) {
       return res.status(404).json({ success: false, error: 'Receipt not found' });
