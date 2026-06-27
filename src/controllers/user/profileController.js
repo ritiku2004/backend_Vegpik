@@ -114,6 +114,11 @@ const deleteAddress = async (req, res) => {
   try {
     const userId = req.user.id;
     const addressId = req.params.id;
+    
+    if (isNaN(addressId)) {
+      return responseHelper.sendError(res, 400, 'Invalid address ID format');
+    }
+
     const success = await userModel.deleteUserAddress(userId, addressId);
     if (!success) {
       return responseHelper.sendError(res, 404, 'Address not found or unauthorized');

@@ -8,7 +8,9 @@ const getDashboardStats = async (req, res) => {
     let startDate = null;
     const now = new Date();
 
-    if (timeframe === 'week') {
+    if (timeframe === 'today') {
+      startDate = new Date(now.setHours(0, 0, 0, 0));
+    } else if (timeframe === 'week') {
       startDate = new Date(now.setDate(now.getDate() - 7));
     } else if (timeframe === '15days') {
       startDate = new Date(now.setDate(now.getDate() - 15));
