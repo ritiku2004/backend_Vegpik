@@ -1,7 +1,7 @@
 const pool = require('../config/db');
 
 const getAllCategories = async () => {
-  const [rows] = await pool.query('SELECT * FROM categories ORDER BY sequence ASC, created_at DESC');
+  const [rows] = await pool.query('SELECT * FROM categories WHERE is_active = 1 ORDER BY sequence ASC, created_at DESC');
   return rows;
 };
 
@@ -17,7 +17,7 @@ const getCategoriesByShopId = async (shopId) => {
     JOIN product_categories pc ON pc.category_id = c.id
     JOIN products p ON pc.product_id = p.id
     LEFT JOIN shop_products sp ON sp.product_id = p.id AND sp.shop_id = ?
-    WHERE COALESCE(sp.is_available, true) = true AND p.is_active = true
+    WHERE COALESCE(sp.is_available, true) = true AND p.is_active = 1 AND c.is_active = 1
     ORDER BY c.sequence ASC, c.created_at DESC
   `, [shopId]);
   return rows;
@@ -26,7 +26,7 @@ const getCategoriesByShopId = async (shopId) => {
 const createCategory = async (categoryData) => {
   const { name, description, image_url, sequence = 0 } = categoryData;
   const [result] = await pool.query(
-    'INSERT INTO categories (name, description, image_url, sequence) VALUES (?, ?, ?, ?)',
+    'INSERT INTO categories (name, description, image_url, sequence, is_active) VALUES (?, ?, ?, ?, 1)',
     [name, description, image_url, Number(sequence)]
   );
   return result.insertId;
@@ -42,7 +42,20 @@ const updateCategory = async (id, categoryData) => {
 };
 
 const deleteCategory = async (id) => {
-  const [result] = await pool.query('DELETE FROM categories WHERE id = ?', [id]);
+  // Check if there are any ACTIVE products in this category
+  const [activeProducts] = await pool.query(`
+    SELECT count(*) as count 
+    FROM product_categories pc 
+    JOIN products p ON pc.product_id = p.id 
+    WHERE pc.category_id = ? AND p.is_active = 1
+  `, [id]);
+  
+  if (activeProducts[0].count > 0) {
+    throw new Error('HAS_ACTIVE_PRODUCTS');
+  }
+
+  // Soft delete: inactivate the category
+  const [result] = await pool.query('UPDATE categories SET is_active = 0 WHERE id = ?', [id]);
   return result.affectedRows > 0;
 };
 

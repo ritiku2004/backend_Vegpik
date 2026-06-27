@@ -6,6 +6,7 @@ const getAllProducts = async () => {
     FROM products p
     JOIN categories c ON p.category_id = c.id
     LEFT JOIN product_categories pc ON p.id = pc.product_id
+    WHERE p.is_active = 1
     GROUP BY p.id
     ORDER BY p.created_at DESC
   `);
@@ -106,8 +107,8 @@ const updateProduct = async (id, productData, featuresData = null) => {
 };
 
 const deleteProduct = async (id) => {
-  // Features are deleted automatically due to ON DELETE CASCADE
-  const [result] = await pool.query('DELETE FROM products WHERE id = ?', [id]);
+  // Soft delete: inactivate the product instead of deleting it
+  const [result] = await pool.query('UPDATE products SET is_active = 0 WHERE id = ?', [id]);
   return result.affectedRows > 0;
 };
 

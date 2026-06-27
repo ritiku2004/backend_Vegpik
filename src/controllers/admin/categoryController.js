@@ -56,7 +56,10 @@ const deleteCategory = async (req, res) => {
     }
     return responseHelper.sendSuccess(res, 200, 'Category deleted successfully');
   } catch (error) {
-    return responseHelper.sendError(res, 500, 'Failed to delete category. Ensure no products are attached.', error);
+    if (error.message === 'HAS_ACTIVE_PRODUCTS') {
+      return responseHelper.sendError(res, 400, 'Cannot delete: Category contains active products. Please inactivate or move them first.');
+    }
+    return responseHelper.sendError(res, 500, 'Failed to delete category.', error);
   }
 };
 
