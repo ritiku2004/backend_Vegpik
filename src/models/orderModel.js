@@ -150,14 +150,14 @@ const calculateOrderDetails = async (userId, shopId, addressId, items, tipAmount
   const calculatedGrandTotal = subtotal + calculatedDeliveryFee + calculatedHandlingFee + (Number(tipAmount) || 0) - (Number(discountAmount) || 0);
 
   return {
-    subtotal,
+    subtotal: Number(subtotal.toFixed(2)),
     distance,
     config,
     items: processedItems,
-    calculatedDeliveryFee,
-    calculatedHandlingFee,
-    calculatedTaxAmount,
-    calculatedGrandTotal,
+    calculatedDeliveryFee: Number(calculatedDeliveryFee.toFixed(2)),
+    calculatedHandlingFee: Number(calculatedHandlingFee.toFixed(2)),
+    calculatedTaxAmount: Number(calculatedTaxAmount.toFixed(2)),
+    calculatedGrandTotal: Number(calculatedGrandTotal.toFixed(2)),
     addressIdToUse
   };
 };
