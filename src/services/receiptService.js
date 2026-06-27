@@ -1,169 +1,296 @@
-const PDFDocument = require('pdfkit');
 const { addReceipt } = require('../models/receiptModel');
 const { orderModel } = require('../models');
+const fs = require('fs');
+const path = require('path');
 
-const generatePdfBuffer = async (order) => {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ margin: 40 });
-      const buffers = [];
-      doc.on('data', (buf) => buffers.push(buf));
-      doc.on('end', () => resolve(Buffer.concat(buffers)));
-      doc.on('error', reject);
+let base64Logo = '';
+try {
+  const logoPath = path.resolve(__dirname, '../../../App/assets/Logo/logo.png');
+  const buf = fs.readFileSync(logoPath);
+  base64Logo = `data:image/png;base64,${buf.toString('base64')}`;
+} catch (e) {
+  console.error('Could not load logo for receipt:', e);
+}
 
-      // Top Accent Header Bar (Vegpik Green)
-      doc.rect(0, 0, 612, 15).fill('#15803D');
+const generateHtmlReceipt = (order) => {
+  const customerName = order.receiver_name || `${order.first_name || ''} ${order.last_name || ''}`.trim() || 'Valued Customer';
+  const orderDate = new Date(order.created_at).toLocaleDateString();
+  const subtotal = order.items ? order.items.reduce((acc, item) => acc + (item.quantity * parseFloat(item.price || 0)), 0) : 0;
+  
+  const addressParts = [
+    order.address_line1,
+    order.address_line2,
+    order.city,
+    order.state,
+    order.zip_code
+  ].filter(Boolean).join(', ');
 
-      // Logo Image and Branding Text
-      const logoPath = require('path').resolve(__dirname, '../../../App/assets/Logo/logo.png');
-      try {
-        doc.image(logoPath, 40, 32, { width: 45 });
-      } catch (imgErr) {
-        console.error('Failed to load receipt logo image:', imgErr);
-        // Fallback graphical block if logo not loaded
-        doc.rect(40, 32, 45, 45).fill('#15803D');
-      }
+  const fullAddress = addressParts.length > 0 ? addressParts : 'No address provided';
 
-      // Brand Title Text
-      doc.fontSize(20).font('Helvetica-Bold').fillColor('#15803D').text('Vegpik', 95, 34);
-      doc.fontSize(9).font('Helvetica').fillColor('#4b5563').text('Premium Farm Fresh Groceries', 95, 54);
-      doc.fontSize(8).fillColor('#9ca3af').text('www.vegpik.com | support@vegpik.com', 95, 66);
+  let itemsHtml = '';
+  if (order.items && order.items.length > 0) {
+    order.items.forEach(item => {
+      const itemPrice = parseFloat(item.price || 0);
+      const itemQty = parseInt(item.quantity || 0);
+      const itemTotal = itemPrice * itemQty;
+      itemsHtml += `
+        <tr>
+          <td>${item.product_name || item.name || 'Product'}</td>
+          <td style="text-align: center;">${itemQty}</td>
+          <td style="text-align: right;">AED ${itemPrice.toFixed(2)}</td>
+          <td style="text-align: right; font-weight: 600;">AED ${itemTotal.toFixed(2)}</td>
+        </tr>
+      `;
+    });
+  } else {
+    itemsHtml = `<tr><td colspan="4" style="text-align: center; color: #6b7280; padding: 15px;">No items found</td></tr>`;
+  }
 
-      // Invoice metadata (Right aligned in header)
-      doc.fontSize(16).font('Helvetica-Bold').fillColor('#111827').text('INVOICE / RECEIPT', 40, 34, { align: 'right' });
-      doc.fontSize(9).font('Helvetica').fillColor('#4b5563').text(`Invoice #: INV-${order.order_number}`, 40, 52, { align: 'right' });
-      doc.fontSize(9).text(`Date: ${new Date(order.created_at).toLocaleDateString()}`, 40, 66, { align: 'right' });
+  let summaryHtml = `
+    <div class="summary-row"><span>Subtotal:</span><span>AED ${subtotal.toFixed(2)}</span></div>
+  `;
+  if (parseFloat(order.delivery_fee) > 0) summaryHtml += `<div class="summary-row"><span>Delivery Fee:</span><span>AED ${parseFloat(order.delivery_fee).toFixed(2)}</span></div>`;
+  if (parseFloat(order.handling_fee) > 0) summaryHtml += `<div class="summary-row"><span>Handling Fee:</span><span>AED ${parseFloat(order.handling_fee).toFixed(2)}</span></div>`;
+  if (parseFloat(order.tip_amount) > 0) summaryHtml += `<div class="summary-row"><span>Tip:</span><span>AED ${parseFloat(order.tip_amount).toFixed(2)}</span></div>`;
+  if (parseFloat(order.discount_amount) > 0) summaryHtml += `<div class="summary-row discount"><span>Discount:</span><span>-AED ${parseFloat(order.discount_amount).toFixed(2)}</span></div>`;
+  
+  summaryHtml += `
+    <div class="summary-row grand-total-box">
+      <span>Grand Total:</span>
+      <span>AED ${parseFloat(order.total_amount || 0).toFixed(2)}</span>
+    </div>
+  `;
 
-      // Horizontal separator line
-      doc.moveTo(40, 90).lineTo(572, 90).strokeColor('#e5e7eb').lineWidth(1).stroke();
-
-      // Customer Details (Light grey card block)
-      doc.rect(40, 105, 532, 80).fill('#f8fafc');
-
-      // Order info column
-      doc.fontSize(9).font('Helvetica-Bold').fillColor('#1f2937').text('Order Details', 55, 115);
-      doc.font('Helvetica').fillColor('#4b5563');
-      doc.text(`Order Number: ${order.order_number}`, 55, 130);
-      doc.text(`Payment: ${order.payment_method || 'Cash on Delivery'}`, 55, 145);
-      doc.text(`Status: ${order.payment_status || 'Paid'}`, 55, 160);
-
-      // Deliver to column
-      const customerName = order.receiver_name || `${order.first_name || ''} ${order.last_name || ''}`.trim() || 'Valued Customer';
-      doc.font('Helvetica-Bold').fillColor('#1f2937').text('Deliver To', 320, 115);
-      doc.font('Helvetica').fillColor('#4b5563');
-      doc.text(customerName, 320, 130);
-      doc.text(order.receiver_mobile || order.user_phone || 'N/A', 320, 145);
-      if (order.address_line1) {
-        doc.text(order.address_line1.substring(0, 48), 320, 160);
-      }
-
-      // Items Table Header (Vegpik green banner)
-      let y = 205;
-      doc.rect(40, y, 532, 22).fill('#15803D');
-
-      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9);
-      doc.text('Item Description', 55, y + 6);
-      doc.text('Qty', 320, y + 6, { width: 50, align: 'center' });
-      doc.text('Price (AED)', 390, y + 6, { width: 80, align: 'right' });
-      doc.text('Total (AED)', 480, y + 6, { width: 80, align: 'right' });
-      
-      y += 28;
-      
-      doc.font('Helvetica');
-      
-      // Items Rows
-      if (order.items && order.items.length > 0) {
-        order.items.forEach((item, index) => {
-          // Check page boundary
-          if (y > 680) {
-            doc.addPage();
-            // Reprint Header Bar on new page
-            doc.rect(0, 0, 612, 15).fill('#15803D');
-            y = 50;
-          }
-          
-          const itemPrice = parseFloat(item.price || 0);
-          const itemQty = parseInt(item.quantity || 0);
-          const itemTotal = itemPrice * itemQty;
-          
-          // Light background stripe for alternate rows
-          if (index % 2 === 0) {
-            doc.rect(40, y - 3, 532, 18).fill('#fbfbfb');
-          }
-
-          doc.fillColor('#374151').text(item.product_name || item.name || 'Product', 55, y);
-          doc.fillColor('#4b5563').text(itemQty.toString(), 320, y, { width: 50, align: 'center' });
-          doc.text(itemPrice.toFixed(2), 390, y, { width: 80, align: 'right' });
-          doc.fillColor('#111827').text(itemTotal.toFixed(2), 480, y, { width: 80, align: 'right' });
-          
-          y += 18;
-        });
-      } else {
-        doc.fillColor('#9ca3af').text('No items found', 55, y);
-        y += 18;
-      }
-
-      y += 10;
-      doc.moveTo(40, y).lineTo(572, y).strokeColor('#e5e7eb').lineWidth(1).stroke();
-      y += 15;
-
-      // Summary block
-      const subtotal = order.items ? order.items.reduce((acc, item) => acc + (item.quantity * parseFloat(item.price || 0)), 0) : 0;
-      
-      const addSummaryRow = (label, val, isBold = false) => {
-        if (isBold) {
-          doc.font('Helvetica-Bold').fillColor('#15803D');
-        } else {
-          doc.font('Helvetica').fillColor('#4b5563');
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Receipt - INV-${order.order_number}</title>
+      <style>
+        body { 
+          font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+          margin: 0; 
+          padding: 0; 
+          color: #111827; 
+          background: #fff; 
+          font-size: 13px;
+          line-height: 1.4;
+          -webkit-print-color-adjust: exact; 
+          print-color-adjust: exact;
         }
-        doc.text(label, 350, y, { width: 120, align: 'right' });
-        doc.text(val, 480, y, { width: 80, align: 'right' });
-        y += 16;
-      };
+        .container {
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 30px;
+        }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          border-bottom: 2px solid #15803D;
+          padding-bottom: 20px;
+          margin-bottom: 20px;
+        }
+        .logo-box {
+          margin-bottom: 12px;
+        }
+        .logo-box img {
+          height: 100px;
+          object-fit: contain;
+        }
+        .company-details {
+          margin-top: 5px;
+          font-size: 13px;
+          color: #4b5563;
+          line-height: 1.5;
+        }
+        .invoice-details {
+          text-align: right;
+        }
+        .invoice-details h2 {
+          margin: 0 0 10px 0;
+          color: #15803D;
+          font-size: 26px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+        .invoice-details table {
+          margin-left: auto;
+          width: auto;
+          margin-bottom: 0;
+        }
+        .invoice-details td {
+          padding: 3px 0 3px 15px;
+          text-align: right;
+          border: none;
+        }
+        .details-grid {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 20px;
+        }
+        .details-box {
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          padding: 15px;
+          width: 48%;
+          border-radius: 6px;
+        }
+        .details-box h3 {
+          margin: 0 0 8px 0;
+          font-size: 12px;
+          color: #6b7280;
+          text-transform: uppercase;
+          border-bottom: 1px solid #e5e7eb;
+          padding-bottom: 8px;
+        }
+        .details-box p {
+          margin: 4px 0;
+          font-size: 13px;
+        }
+        .items-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+        .items-table th {
+          background: #111827;
+          color: #ffffff;
+          padding: 10px 12px;
+          font-size: 12px;
+          text-transform: uppercase;
+          text-align: left;
+        }
+        .items-table td {
+          padding: 10px 12px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .items-table tbody tr:nth-child(even) {
+          background-color: #f9fafb;
+        }
+        .summary-wrapper {
+          display: flex;
+          justify-content: flex-end;
+        }
+        .summary-box {
+          width: 320px;
+        }
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 12px;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        .summary-row.discount {
+          color: #059669;
+        }
+        .grand-total-box {
+          background: #15803D;
+          color: #ffffff;
+          font-weight: bold;
+          font-size: 18px;
+          padding: 12px 15px;
+          border: none;
+          margin-top: 10px;
+          border-radius: 6px;
+        }
+        .footer {
+          margin-top: 40px;
+          text-align: center;
+          font-size: 13px;
+          color: #6b7280;
+          border-top: 1px solid #e5e7eb;
+          padding-top: 15px;
+        }
+        @media print {
+          .container { padding: 25px; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        
+        <div class="header">
+          <div>
+            <div class="logo-box">
+              <img src="${base64Logo}" alt="Vegpik Logo" onerror="this.outerHTML='<h1 style=\\'color:#15803D;margin:0;\\'>Vegpik</h1>'" />
+            </div>
+            <div class="company-details">
+              <strong>Premium Farm Fresh Groceries</strong><br>
+              vegpik.com<br>
+              support@vegpik.com
+            </div>
+          </div>
+          <div class="invoice-details">
+            <h2>INVOICE</h2>
+            <table>
+              <tr><td style="color:#6b7280;">Invoice No:</td><td><strong>INV-${order.order_number}</strong></td></tr>
+              <tr><td style="color:#6b7280;">Date:</td><td><strong>${orderDate}</strong></td></tr>
+              <tr><td style="color:#6b7280;">Status:</td><td style="color:#15803D;"><strong>${(order.payment_status || 'Paid').toUpperCase()}</strong></td></tr>
+            </table>
+          </div>
+        </div>
 
-      addSummaryRow('Subtotal:', `AED ${subtotal.toFixed(2)}`);
-      if (parseFloat(order.delivery_fee) > 0) {
-        addSummaryRow('Delivery Fee:', `AED ${parseFloat(order.delivery_fee).toFixed(2)}`);
-      }
-      if (parseFloat(order.handling_fee) > 0) {
-        addSummaryRow('Handling Fee:', `AED ${parseFloat(order.handling_fee).toFixed(2)}`);
-      }
-      if (parseFloat(order.tip_amount) > 0) {
-        addSummaryRow('Tip:', `AED ${parseFloat(order.tip_amount).toFixed(2)}`);
-      }
-      if (parseFloat(order.discount_amount) > 0) {
-        addSummaryRow('Discount:', `-AED ${parseFloat(order.discount_amount).toFixed(2)}`);
-      }
-      
-      y += 5;
-      doc.moveTo(350, y).lineTo(572, y).strokeColor('#e5e7eb').lineWidth(0.5).stroke();
-      y += 10;
-      
-      addSummaryRow('Grand Total:', `AED ${parseFloat(order.total_amount || 0).toFixed(2)}`, true);
+        <div class="details-grid">
+          <div class="details-box">
+            <h3>Billed To</h3>
+            <p><strong>${customerName}</strong></p>
+            <p>${order.receiver_mobile || order.user_phone || 'N/A'}</p>
+            <p>${fullAddress}</p>
+          </div>
+          <div class="details-box" style="text-align: right;">
+            <h3>Payment Method</h3>
+            <p><strong>${order.payment_method || 'Cash on Delivery'}</strong></p>
+            <p>Order ID: #${order.id}</p>
+            <p>Currency: AED</p>
+          </div>
+        </div>
 
-      // Bottom Accent Footer Bar (Vegpik Green)
-      doc.rect(0, doc.page.height - 15, 612, 15).fill('#15803D');
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Item Description</th>
+              <th style="text-align: center;">Qty</th>
+              <th style="text-align: right;">Price</th>
+              <th style="text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
 
-      // Footer text
-      doc.fontSize(8).fillColor('#9ca3af').text('Thank you for shopping with Vegpik! For inquiries, contact support@vegpik.com', 40, doc.page.height - 40, { align: 'center' });
+        <div class="summary-wrapper">
+          <div class="summary-box">
+            ${summaryHtml}
+          </div>
+        </div>
 
-      doc.end();
-    } catch (err) {
-      reject(err);
-    }
-  });
+        <div class="footer">
+          <strong>Thank you for shopping with Vegpik!</strong><br>
+          If you have any questions about this invoice, please contact support@vegpik.com
+        </div>
+        
+      </div>
+    </body>
+    </html>
+  `;
 };
 
 const generateAndStoreReceipt = async (orderId) => {
   const order = await orderModel.getOrderById(orderId);
   if (!order) throw new Error('Order not found');
-  const pdfBuffer = await generatePdfBuffer(order);
-  const fileName = `receipt_${order.order_number}.pdf`;
-  await addReceipt(orderId, fileName, pdfBuffer);
+  
+  const htmlString = generateHtmlReceipt(order);
+  const htmlBuffer = Buffer.from(htmlString, 'utf8');
+  const fileName = `receipt_${order.order_number}.html`;
+  
+  await addReceipt(orderId, fileName, htmlBuffer);
   return fileName;
 };
 
 module.exports = {
-  generatePdfBuffer,
+  generateHtmlReceipt,
   generateAndStoreReceipt
 };

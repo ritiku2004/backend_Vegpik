@@ -6,28 +6,46 @@ router.get('/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
     const { receiptService } = require('../../../services');
-    try {
-      await receiptService.generateAndStoreReceipt(orderId);
-    } catch (genErr) {
-      console.error('Failed to generate receipt:', genErr);
+    const { orderModel } = require('../../../models');
+    
+    const order = await orderModel.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
     }
     
-    const receipt = await receiptModel.getReceiptByOrderId(orderId);
+    // Generate fresh HTML on the fly so design updates apply instantly
+    const htmlContent = receiptService.generateHtmlReceipt(order);
     
-    if (!receipt) {
-      return res.status(404).json({ success: false, error: 'Receipt not found' });
-    }
-
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${receipt.file_name}"`,
-      'Content-Length': receipt.file_data.length
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.json({
+      success: true,
+      html: htmlContent
     });
-    
-    res.send(receipt.file_data);
   } catch (error) {
     console.error('Error serving receipt:', error);
     res.status(500).json({ success: false, error: 'Failed to retrieve receipt' });
+  }
+});
+
+router.get('/:orderId/view', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { receiptService } = require('../../../services');
+    const { orderModel } = require('../../../models');
+    
+    const order = await orderModel.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).send('Order not found');
+    }
+    
+    const htmlContent = receiptService.generateHtmlReceipt(order);
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.send(htmlContent);
+  } catch (error) {
+    console.error('Error serving receipt html:', error);
+    res.status(500).send('Failed to retrieve receipt');
   }
 });
 
