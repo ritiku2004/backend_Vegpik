@@ -108,7 +108,7 @@ const getUserDetailsById = async (id) => {
 };
 
 const getUserAddresses = async (userId) => {
-  const [rows] = await pool.query('SELECT * FROM user_addresses WHERE user_id = ?', [userId]);
+  const [rows] = await pool.query('SELECT * FROM user_addresses WHERE user_id = ? AND is_deleted = 0', [userId]);
   return rows;
 };
 
@@ -121,7 +121,7 @@ const saveUserAddress = async (userId, addressData) => {
   }
 
   const [existing] = await pool.query(
-    'SELECT id FROM user_addresses WHERE user_id = ? AND title = ?',
+    'SELECT id FROM user_addresses WHERE user_id = ? AND title = ? AND is_deleted = 0',
     [userId, cleanTitle]
   );
 
@@ -165,11 +165,26 @@ const saveUserAddress = async (userId, addressData) => {
 };
 
 const deleteUserAddress = async (userId, addressId) => {
-  const [result] = await pool.query(
-    'DELETE FROM user_addresses WHERE user_id = ? AND id = ?',
+  const [addressRows] = await pool.query(
+    'SELECT is_default FROM user_addresses WHERE user_id = ? AND id = ?',
     [userId, addressId]
   );
-  return result.affectedRows > 0;
+
+  const [result] = await pool.query(
+    'UPDATE user_addresses SET is_deleted = 1, is_default = 0 WHERE user_id = ? AND id = ?',
+    [userId, addressId]
+  );
+
+  if (result.affectedRows > 0) {
+    if (addressRows.length > 0 && addressRows[0].is_default) {
+      await pool.query(
+        'UPDATE users SET default_address_id = NULL WHERE id = ?',
+        [userId]
+      );
+    }
+    return true;
+  }
+  return false;
 };
 
 const updateUserProfilePicture = async (id, profilePictureUrl) => {
