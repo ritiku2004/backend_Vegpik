@@ -35,9 +35,13 @@ const uploadSingle = (fieldname) => {
       }
 
       try {
-        // Resolve base uploads directory (configurable for Hostinger persistence)
-        const baseUploadDir = process.env.UPLOAD_DIR 
-          ? path.resolve(process.env.UPLOAD_DIR) 
+        let envUploadDir = process.env.UPLOAD_DIR;
+        if (envUploadDir && envUploadDir.startsWith('home/')) {
+          envUploadDir = '/' + envUploadDir;
+        }
+
+        const baseUploadDir = envUploadDir 
+          ? path.resolve(envUploadDir) 
           : path.join(__dirname, '../../uploads');
 
         // Determine type (subdirectory: products, categories, banners, users)

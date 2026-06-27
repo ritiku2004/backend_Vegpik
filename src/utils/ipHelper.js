@@ -23,7 +23,11 @@ const getFormattedUrl = (req, fileOrFilename) => {
     const destination = fileOrFilename.destination;
     if (destination) {
       const normalizedDest = destination.replace(/\\/g, '/');
-      const baseDir = process.env.UPLOAD_DIR ? require('path').resolve(process.env.UPLOAD_DIR).replace(/\\/g, '/').replace(/\/+$/, '') : '';
+      let envUploadDir = process.env.UPLOAD_DIR;
+      if (envUploadDir && envUploadDir.startsWith('home/')) {
+        envUploadDir = '/' + envUploadDir;
+      }
+      const baseDir = envUploadDir ? require('path').resolve(envUploadDir).replace(/\\/g, '/').replace(/\/+$/, '') : '';
       
       if (baseDir && normalizedDest.startsWith(baseDir)) {
         subDir = normalizedDest.substring(baseDir.length);

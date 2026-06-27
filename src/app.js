@@ -37,8 +37,12 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const uploadDir = process.env.UPLOAD_DIR 
-  ? path.resolve(process.env.UPLOAD_DIR) 
+let envUploadDir = process.env.UPLOAD_DIR;
+if (envUploadDir && envUploadDir.startsWith('home/')) {
+  envUploadDir = '/' + envUploadDir;
+}
+const uploadDir = envUploadDir 
+  ? path.resolve(envUploadDir) 
   : path.join(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadDir));
 
