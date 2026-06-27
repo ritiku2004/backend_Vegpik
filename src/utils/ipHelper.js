@@ -23,7 +23,7 @@ const getFormattedUrl = (req, fileOrFilename) => {
     const destination = fileOrFilename.destination;
     if (destination) {
       const normalizedDest = destination.replace(/\\/g, '/');
-      const baseDir = (process.env.UPLOAD_DIR || '').replace(/\\/g, '/').replace(/\/+$/, '');
+      const baseDir = process.env.UPLOAD_DIR ? require('path').resolve(process.env.UPLOAD_DIR).replace(/\\/g, '/').replace(/\/+$/, '') : '';
       
       if (baseDir && normalizedDest.startsWith(baseDir)) {
         subDir = normalizedDest.substring(baseDir.length);
@@ -43,7 +43,10 @@ const getFormattedUrl = (req, fileOrFilename) => {
   let formattedUrl;
   
   if (baseUrl) {
-    const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    let base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    if (!base.startsWith('http://') && !base.startsWith('https://')) {
+      base = 'https://' + base;
+    }
     formattedUrl = `${base}/${subDir ? subDir + '/' : ''}${filename}`;
   } else {
     let host = req.get('host'); // e.g. "localhost:3000" or "192.168.1.5:3000"
