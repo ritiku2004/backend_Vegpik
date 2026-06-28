@@ -218,3 +218,5 @@ CREATE TABLE IF NOT EXISTS device_tokens (
 );
 
 
+C R E A T E   T A B L E   I F   N O T   E X I S T S   a p p _ s e t t i n g s   ( s e t t i n g _ k e y   V A R C H A R ( 1 0 0 )   P R I M A R Y   K E Y ,   s e t t i n g _ v a l u e   T E X T   N O T   N U L L ,   c r e a t e d _ a t   T I M E S T A M P   D E F A U L T   C U R R E N T _ T I M E S T A M P ,   u p d a t e d _ a t   T I M E S T A M P   D E F A U L T   C U R R E N T _ T I M E S T A M P   O N   U P D A T E   C U R R E N T _ T I M E S T A M P ) ;  
+ 

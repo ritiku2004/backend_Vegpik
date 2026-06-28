@@ -5,5 +5,7 @@ const { authMiddleware } = require('../../../middlewares');
 
 router.post('/', authMiddleware.authenticateJWT, orderController.createOrder);
 router.get('/', authMiddleware.authenticateJWT, orderController.getUserOrders);
+router.get('/:orderId/receipt', authMiddleware.authenticateJWT, orderController.getOrderReceipt);
+router.get('/:orderId/invoice', authMiddleware.authenticateJWT, orderController.getOrderReceipt);
 
 module.exports = router;

@@ -66,7 +66,31 @@ const getUserOrders = async (req, res) => {
   }
 };
 
+const getOrderReceipt = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { orderId } = req.params;
+    
+    const order = await orderModel.getOrderById(orderId);
+    if (!order || order.user_id !== userId) {
+      return responseHelper.sendError(res, 404, 'Order not found');
+    }
+    
+    const { receiptService } = require('../../services');
+    const htmlContent = receiptService.generateHtmlReceipt(order);
+    
+    return res.json({
+      success: true,
+      html: htmlContent
+    });
+  } catch (error) {
+    console.error('Get Order Receipt Error:', error);
+    return responseHelper.sendError(res, 500, 'Failed to fetch receipt', error);
+  }
+};
+
 module.exports = {
   createOrder,
-  getUserOrders
+  getUserOrders,
+  getOrderReceipt
 };
