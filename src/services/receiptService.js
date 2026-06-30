@@ -5,7 +5,7 @@ const path = require('path');
 
 let base64Logo = '';
 try {
-  const logoPath = path.resolve(__dirname, '../../../App/assets/Logo/logo.png');
+  const logoPath = path.resolve(__dirname, '../assets/logo.png');
   const buf = fs.readFileSync(logoPath);
   base64Logo = `data:image/png;base64,${buf.toString('base64')}`;
 } catch (e) {
@@ -14,7 +14,12 @@ try {
 
 const generateHtmlReceipt = (order) => {
   const customerName = order.receiver_name || `${order.first_name || ''} ${order.last_name || ''}`.trim() || 'Valued Customer';
-  const orderDate = new Date(order.created_at).toLocaleDateString();
+  const dateObj = new Date(order.created_at);
+  const orderDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}, ${dateObj.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  })}`;
   const subtotal = order.items ? order.items.reduce((acc, item) => acc + (item.quantity * parseFloat(item.price || 0)), 0) : 0;
   
   const addressParts = [
@@ -226,8 +231,13 @@ const generateHtmlReceipt = (order) => {
             <h2>INVOICE</h2>
             <table>
               <tr><td style="color:#6b7280;">Invoice No:</td><td><strong>INV-${order.order_number}</strong></td></tr>
-              <tr><td style="color:#6b7280;">Date:</td><td><strong>${orderDate}</strong></td></tr>
-              <tr><td style="color:#6b7280;">Status:</td><td style="color:#15803D;"><strong>${(order.payment_status || 'Paid').toUpperCase()}</strong></td></tr>
+              <tr><td style="color:#6b7280;">Order Date:</td><td><strong>${orderDate}</strong></td></tr>
+              <tr>
+                <td style="color:#6b7280;">Payment Status:</td>
+                <td style="color:${(order.payment_status || '').toLowerCase() === 'paid' ? '#15803D' : '#ea580c'};">
+                  <strong>${(order.payment_status || 'Paid').toUpperCase()}</strong>
+                </td>
+              </tr>
             </table>
           </div>
         </div>
