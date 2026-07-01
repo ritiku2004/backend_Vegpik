@@ -12,6 +12,7 @@ const dashboardModel = require('./dashboardModel');
 const deviceTokenModel = require('./deviceTokenModel');
 const notificationModel = require('./notificationModel');
 const receiptModel = require('./receiptModel');
+const supportModel = require('./supportModel');
 
 module.exports = {
   userModel,
@@ -27,5 +28,6 @@ module.exports = {
   dashboardModel,
   deviceTokenModel,
   notificationModel,
-  receiptModel
+  receiptModel,
+  supportModel
 };

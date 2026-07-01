@@ -14,7 +14,7 @@ app.use(morgan('dev'));
 // Custom logging middleware for debugging cart requests
 const fs = require('fs');
 app.use((req, res, next) => {
-  if (req.url.includes('/user/cart') || req.url.includes('/orders')) {
+  if (req.url.includes('/user/cart') || req.url.includes('/orders') || req.url.includes('/support/')) {
     const logData = {
       timestamp: new Date().toISOString(),
       method: req.method,

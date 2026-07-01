@@ -1,6 +1,6 @@
 const { responseHelper } = require('../../utils');
 const emailSender = require('../../utils/emailSender');
-const { userModel } = require('../../models');
+const { userModel, supportModel } = require('../../models');
 
 const submitSupportQuery = async (req, res) => {
   try {
@@ -14,29 +14,47 @@ const submitSupportQuery = async (req, res) => {
       return responseHelper.sendError(res, 400, 'Description is required.');
     }
 
-    let customerName = name;
-    let customerEmail = email;
-    let customerPhone = phone;
+    let customerName = name ? name.trim() : '';
+    let customerEmail = email ? email.trim() : '';
+    let customerPhone = phone ? phone.trim() : '';
     const userId = req.user?.id || null;
 
     if (userId) {
       const dbUser = await userModel.getUserById(userId);
       if (dbUser) {
-        customerName = customerName || `${dbUser.first_name || ''} ${dbUser.last_name || ''}`.trim() || dbUser.name;
-        customerEmail = customerEmail || dbUser.email;
-        customerPhone = customerPhone || dbUser.phone_number;
+        customerName = customerName || `${dbUser.first_name || ''} ${dbUser.last_name || ''}`.trim() || dbUser.name || 'Anonymous Customer';
+        customerEmail = customerEmail || dbUser.email || 'No email provided';
+        customerPhone = customerPhone || dbUser.phone_number || 'No phone provided';
       }
     }
 
-    // Call the email utility function
-    await emailSender.sendSupportQueryEmail({
+    if (!customerName) customerName = 'Anonymous Customer';
+    if (!customerEmail) customerEmail = 'No email provided';
+    if (!customerPhone) customerPhone = 'No phone provided';
+
+    // Save to the database
+    await supportModel.saveContactQuery(
       userId,
-      name: customerName || 'Anonymous Customer',
-      email: customerEmail || 'No email provided',
-      phone: customerPhone || 'No phone provided',
-      subject: subject.trim(),
-      description: description.trim()
-    });
+      customerName || 'Anonymous Customer',
+      customerEmail || 'No email provided',
+      customerPhone || 'No phone provided',
+      subject.trim(),
+      description.trim()
+    );
+
+    // Call the email utility function (we wrap in try-catch so email failure doesn't block db success response)
+    try {
+      await emailSender.sendSupportQueryEmail({
+        userId,
+        name: customerName || 'Anonymous Customer',
+        email: customerEmail || 'No email provided',
+        phone: customerPhone || 'No phone provided',
+        subject: subject.trim(),
+        description: description.trim()
+      });
+    } catch (emailErr) {
+      console.error('Failed to send support email but saved to database:', emailErr);
+    }
 
     return responseHelper.sendSuccess(
       res,
@@ -54,6 +72,28 @@ const submitSupportQuery = async (req, res) => {
   }
 };
 
+const getSocialLinks = async (req, res) => {
+  try {
+    const links = await supportModel.getAllSocialLinks();
+    return responseHelper.sendSuccess(res, 200, 'Social links retrieved successfully', links);
+  } catch (error) {
+    console.error('Error in getSocialLinks controller:', error);
+    return responseHelper.sendError(res, 500, 'Failed to fetch social links', error.message);
+  }
+};
+
+const getContactInfo = async (req, res) => {
+  try {
+    const info = await supportModel.getAllContactInfo();
+    return responseHelper.sendSuccess(res, 200, 'Contact info retrieved successfully', info);
+  } catch (error) {
+    console.error('Error in getContactInfo controller:', error);
+    return responseHelper.sendError(res, 500, 'Failed to fetch contact info', error.message);
+  }
+};
+
 module.exports = {
-  submitSupportQuery
+  submitSupportQuery,
+  getSocialLinks,
+  getContactInfo
 };

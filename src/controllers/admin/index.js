@@ -9,6 +9,7 @@ const authController = require('./authController');
 const userController = require('./userController');
 const chargesController = require('./chargesController');
 const tokenController = require('./tokenController');
+const supportController = require('./supportController');
 
 module.exports = {
   dashboardController,
@@ -21,5 +22,6 @@ module.exports = {
   authController,
   userController,
   chargesController,
-  tokenController
+  tokenController,
+  supportController
 };
