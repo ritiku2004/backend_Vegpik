@@ -44,9 +44,11 @@ const getFormattedUrl = (req, fileOrFilename) => {
   subDir = subDir.replace(/^\/+|\/+$/g, '');
 
   const baseUrl = process.env.BASE_URL;
+  // If file was saved to local fallback (not production path), use local server URL
+  const isLocalFallback = fileOrFilename && fileOrFilename.isLocalFallback;
   let formattedUrl;
   
-  if (baseUrl) {
+  if (baseUrl && !isLocalFallback) {
     let base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     if (!base.startsWith('http://') && !base.startsWith('https://')) {
       base = 'https://' + base;

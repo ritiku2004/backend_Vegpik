@@ -8,6 +8,7 @@ const orderRoutes = require('./orderRoutes');
 const tokenRoutes = require('./tokenRoutes');
 const supportRoutes = require('./supportRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const paymentSettingsRoutes = require('./paymentSettingsRoutes');
 
 // Mount all user routes
 router.use('/auth', authRoutes);
@@ -18,5 +19,6 @@ router.use('/orders', orderRoutes);
 router.use('/token', tokenRoutes);
 router.use('/support', supportRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/payment-settings', paymentSettingsRoutes);
 
 module.exports = router;

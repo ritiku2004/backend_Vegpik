@@ -7,6 +7,7 @@ const upload = require('../../../middlewares/uploadMiddleware');
 // Auth routes
 router.post('/send-otp', authController.sendOtp);
 router.post('/verify-otp', authController.verifyOtpAndLogin);
+router.delete('/delete-account', authMiddleware.authenticateJWT, authController.deleteAccount);
 
 // Profile routes (protected)
 router.get('/profile', authMiddleware.authenticateJWT, profileController.getProfile);

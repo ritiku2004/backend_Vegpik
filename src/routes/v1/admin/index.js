@@ -13,6 +13,7 @@ const chargesRoutes = require('./chargesRoutes');
 const tokenRoutes = require('./tokenRoutes');
 const receiptRoutes = require('./receiptRoutes');
 const supportRoutes = require('./supportRoutes');
+const paymentSettingsRoutes = require('./paymentSettingsRoutes');
 const upload = require('../../../middlewares/uploadMiddleware');
 const { responseHelper, ipHelper } = require('../../../utils');
 
@@ -35,6 +36,7 @@ router.use('/charges', chargesRoutes);
 router.use('/token', tokenRoutes);
 router.use('/receipts', receiptRoutes);
 router.use('/support', supportRoutes);
+router.use('/payment-settings', paymentSettingsRoutes);
 
 // Admin file upload route
 router.post('/upload', upload.single('image'), (req, res) => {

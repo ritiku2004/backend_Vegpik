@@ -40,7 +40,7 @@ const uploadSingle = (fieldname) => {
           envUploadDir = '/' + envUploadDir;
         }
 
-        const baseUploadDir = envUploadDir 
+        let baseUploadDir = envUploadDir 
           ? path.resolve(envUploadDir) 
           : path.join(__dirname, '../../uploads');
 
@@ -60,18 +60,35 @@ const uploadSingle = (fieldname) => {
             } else if (url.includes('user') || url.includes('users') || url.includes('profile')) {
               type = 'users';
             } else {
-              type = 'products'; // fallback
+              type = 'users'; // fallback for payment screenshots etc.
             }
           }
         }
 
         const allowedTypes = ['products', 'categories', 'banners', 'users'];
-        const subDir = allowedTypes.includes(type) ? type : 'products';
-        const targetDir = path.join(baseUploadDir, subDir);
+        const subDir = allowedTypes.includes(type) ? type : 'users';
+        let targetDir = path.join(baseUploadDir, subDir);
 
-        // Ensure target directory exists
-        if (!fs.existsSync(targetDir)) {
-          fs.mkdirSync(targetDir, { recursive: true });
+        // Try to create target directory; if it fails (e.g., production path on local Windows),
+        // fall back to local uploads/ directory
+        try {
+          if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+          }
+          // On Windows, path.resolve('/home/...') silently creates a local Windows path
+          // instead of failing. Detect this so we use local IP for the URL, not BASE_URL.
+          const isWindowsDev = process.platform === 'win32' && process.env.UPLOAD_DIR && process.env.UPLOAD_DIR.startsWith('home/');
+          if (isWindowsDev) {
+            req.file.isLocalFallback = true;
+          }
+        } catch (mkdirErr) {
+          console.warn('[Upload] Could not create dir at configured path, falling back to local uploads/:', mkdirErr.message);
+          baseUploadDir = path.join(__dirname, '../../uploads');
+          targetDir = path.join(baseUploadDir, subDir);
+          if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+          }
+          req.file.isLocalFallback = true; // Signal to URL builder to use local IP, not BASE_URL
         }
 
         // Generate unique filename with .webp extension
@@ -83,6 +100,10 @@ const uploadSingle = (fieldname) => {
         await sharp(req.file.buffer)
           .webp({ quality: 80 })
           .toFile(filepath);
+
+        // Build a URL for local dev (will be relative; production uses BASE_URL)
+        const baseUrl = process.env.BASE_URL || `http://${req.hostname}:${process.env.PORT || 3000}`;
+        req.file.publicUrl = `${baseUrl}/${subDir}/${filename}`;
 
         // Update req.file details so downstream helpers/controllers work seamlessly
         req.file.filename = filename;

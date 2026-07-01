@@ -173,7 +173,12 @@ const createOrder = async (
   handlingFee = 0, 
   deliveryFee = 0, 
   paymentMethod = 'COD', 
-  paymentStatus = 'PENDING'
+  paymentStatus = 'PENDING',
+  paymentScreenshotUrl = null,
+  transactionId = null,
+  userBankName = null,
+  userBankAccount = null,
+  userBankIban = null
 ) => {
   try {
     const details = await calculateOrderDetails(userId, shopId, addressId, items, tipAmount, discountAmount);
@@ -191,8 +196,9 @@ const createOrder = async (
         `INSERT INTO orders (
           order_number, user_id, shop_id, address_id, total_amount, 
           tip_amount, discount_amount, handling_fee, delivery_fee, tax_amount, 
-          status, payment_status, payment_method, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          status, payment_status, payment_method, created_at,
+          payment_screenshot_url, transaction_id, user_bank_name, user_bank_account, user_bank_iban
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           orderNumber, 
           userId, 
@@ -201,13 +207,18 @@ const createOrder = async (
           parseFloat(details.calculatedGrandTotal.toFixed(2)), 
           Number(tipAmount) || 0, 
           Number(discountAmount) || 0, 
-          parseFloat(details.calculatedHandlingFee.toFixed(2)), 
-          parseFloat(details.calculatedDeliveryFee.toFixed(2)), 
-          parseFloat(details.calculatedTaxAmount.toFixed(2)),
+          Number(details.calculatedHandlingFee), 
+          Number(details.calculatedDeliveryFee), 
+          Number(details.calculatedTaxAmount), 
           initialStatus, 
           paymentStatus,
           paymentMethod,
-          now
+          now,
+          paymentScreenshotUrl,
+          transactionId,
+          userBankName,
+          userBankAccount,
+          userBankIban
         ]
       );
       const orderId = orderResult.insertId;

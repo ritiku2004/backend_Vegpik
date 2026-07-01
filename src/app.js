@@ -11,30 +11,6 @@ const app = express();
 app.use(cors());
 app.use(morgan('dev'));
 
-// Custom logging middleware for debugging cart requests
-const fs = require('fs');
-app.use((req, res, next) => {
-  if (req.url.includes('/user/cart') || req.url.includes('/orders') || req.url.includes('/support/')) {
-    const logData = {
-      timestamp: new Date().toISOString(),
-      method: req.method,
-      url: req.url,
-      query: req.query,
-      body: req.body,
-    };
-    const logString = `\n--- REQUEST ---\n${JSON.stringify(logData, null, 2)}\n`;
-    fs.appendFileSync(path.join(__dirname, '../request_logs.txt'), logString);
-
-    const oldSend = res.json;
-    res.json = function (body) {
-      const responseLog = `--- RESPONSE ---\nStatus: ${res.statusCode}\nBody: ${JSON.stringify(body, null, 2)}\n---------------\n`;
-      fs.appendFileSync(path.join(__dirname, '../request_logs.txt'), responseLog);
-      return oldSend.call(this, body);
-    };
-  }
-  next();
-});
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 let envUploadDir = process.env.UPLOAD_DIR;
@@ -44,7 +20,13 @@ if (envUploadDir && envUploadDir.startsWith('home/')) {
 const uploadDir = envUploadDir 
   ? path.resolve(envUploadDir) 
   : path.join(__dirname, '../uploads');
-app.use('/uploads', express.static(uploadDir));
+const localUploadsDir = path.join(__dirname, '../uploads');
+// Always serve local uploads/ so fallback-saved files (e.g., on Windows dev) are accessible
+app.use('/uploads', express.static(localUploadsDir));
+// Also serve the configured upload path (handles both production Linux path and Windows-resolved path)
+if (uploadDir !== localUploadsDir) {
+  app.use('/uploads', express.static(uploadDir));
+}
 
 // Middleware to dynamically rewrite local host/IP image urls in responses to match the requesting client host
 app.use((req, res, next) => {
