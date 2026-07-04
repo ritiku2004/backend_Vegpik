@@ -13,27 +13,35 @@ async function main() {
   });
 
   try {
-    console.log('Querying orders...');
-    const [orders] = await pool.query('SELECT * FROM orders ORDER BY id DESC LIMIT 5');
-    console.log('Last 5 orders:');
-    console.log(orders.map(o => ({ id: o.id, order_number: o.order_number })));
+    console.log('--- ALL CATEGORIES ---');
+    const [categories] = await pool.query('SELECT id, name, is_active, sequence FROM categories');
+    console.log(categories);
 
-    console.log('Querying order details for ORD492565...');
-    const queryField = 'o.order_number';
-    const [rows] = await pool.query(`
-      SELECT o.*, u.first_name, u.last_name, u.phone_number as user_phone, s.name as shop_name,
-             a.address_line1, a.address_line2, a.city, a.state,
-             a.receiver_name, a.receiver_mobile, a.latitude, a.longitude
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-      JOIN shops s ON o.shop_id = s.id
-      LEFT JOIN user_addresses a ON o.address_id = a.id
-      WHERE \${queryField} = ?
-    `, ['ORD492565']);
-    console.log('Rows found:', rows.length);
-    if (rows.length > 0) {
-      console.log(rows[0]);
-    }
+    console.log('\n--- ACTIVE PRODUCTS COUNT PER CATEGORY ---');
+    const [productsCount] = await pool.query(`
+      SELECT c.id, c.name, COUNT(p.id) as product_count
+      FROM categories c
+      LEFT JOIN product_categories pc ON pc.category_id = c.id
+      LEFT JOIN products p ON pc.product_id = p.id AND p.is_active = 1
+      GROUP BY c.id, c.name
+    `);
+    console.log(productsCount);
+
+    console.log('\n--- CATEGORIES RETURNED BY getCategoriesByShopId FOR SHOP 1 ---');
+    const [shop1Categories] = await pool.query(`
+      SELECT DISTINCT c.id, c.name, c.is_active
+      FROM categories c
+      JOIN product_categories pc ON pc.category_id = c.id
+      JOIN products p ON pc.product_id = p.id
+      LEFT JOIN shop_products sp ON sp.product_id = p.id AND sp.shop_id = 1
+      WHERE COALESCE(sp.is_available, true) = true AND p.is_active = 1 AND c.is_active = 1
+    `);
+    console.log(shop1Categories);
+
+    console.log('\n--- SHOPS LIST ---');
+    const [shops] = await pool.query('SELECT id, name, is_active FROM shops');
+    console.log(shops);
+
   } catch (error) {
     console.error('Error during query:', error);
   } finally {
