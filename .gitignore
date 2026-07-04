@@ -18,7 +18,6 @@ node_modules/
 # Build and dist directories
 dist/
 build/
-uploads/
 
 # OS generated files
 .DS_Store
