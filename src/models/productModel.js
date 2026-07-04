@@ -15,6 +15,13 @@ const getAllProducts = async (includeInactive = false) => {
     ORDER BY p.created_at DESC
   `;
   const [rows] = await pool.query(query);
+  rows.forEach(r => {
+    if (typeof r.images === 'string') {
+      try { r.images = JSON.parse(r.images); } catch(e) { r.images = []; }
+    } else if (!r.images) {
+      r.images = [];
+    }
+  });
   return rows;
 };
 
@@ -27,21 +34,30 @@ const getProductById = async (id) => {
   // Fetch features
   const [features] = await pool.query('SELECT feature_name, feature_value FROM product_features WHERE product_id = ?', [id]);
   product.features = features;
+  
+  if (typeof product.images === 'string') {
+    try { product.images = JSON.parse(product.images); } catch(e) { product.images = []; }
+  } else if (!product.images) {
+    product.images = [];
+  }
 
   return product;
 };
 const createProduct = async (productData, featuresData = []) => {
-  const { category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active, discount_percentage, type, is_available } = productData;
+  const { category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, images, is_active, discount_percentage, type, is_available } = productData;
   
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
 
+    const imagesJson = images ? JSON.stringify(images) : null;
+    const finalImageUrl = image_url || (images && images.length > 0 ? images[0] : null);
+
     const [result] = await connection.query(
       'INSERT INTO products ' +
-      '(category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active, discount_percentage, type, is_available) ' +
-      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active ?? true, discount_percentage ?? 0.00, type || 'general', is_available ?? true]
+      '(category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, images, is_active, discount_percentage, type, is_available) ' +
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, finalImageUrl, imagesJson, is_active ?? true, discount_percentage ?? 0.00, type || 'general', is_available ?? true]
     );
     const productId = result.insertId;
 
@@ -70,17 +86,20 @@ const createProduct = async (productData, featuresData = []) => {
 };
 
 const updateProduct = async (id, productData, featuresData = null) => {
-  const { category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active, discount_percentage, type, is_available } = productData;
+  const { category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, images, is_active, discount_percentage, type, is_available } = productData;
   
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
 
+    const imagesJson = images ? JSON.stringify(images) : null;
+    const finalImageUrl = image_url || (images && images.length > 0 ? images[0] : null);
+
     await connection.query(
       'UPDATE products ' +
-      'SET category_id=?, name=?, description=?, brand=?, mrp_price=?, quantity=?, quantity_type=?, sku=?, image_url=?, is_active=?, discount_percentage=?, type=?, is_available=? ' +
+      'SET category_id=?, name=?, description=?, brand=?, mrp_price=?, quantity=?, quantity_type=?, sku=?, image_url=?, images=?, is_active=?, discount_percentage=?, type=?, is_available=? ' +
       'WHERE id=?',
-      [category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, image_url, is_active ?? true, discount_percentage ?? 0.00, type || 'general', is_available ?? true, id]
+      [category_id, name, description, brand, mrp_price, quantity, quantity_type, sku, finalImageUrl, imagesJson, is_active ?? true, discount_percentage ?? 0.00, type || 'general', is_available ?? true, id]
     );
 
     // Sync to product_categories
