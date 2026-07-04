@@ -54,9 +54,16 @@ const updateUserName = async (id, firstName, lastName) => {
 };
 
 const updateUserProfile = async (id, firstName, lastName, email, phone_number, profilePictureUrl) => {
+  // Fetch existing user to preserve profile_picture_url and email if not provided
+  const [existingUserRows] = await pool.query('SELECT email, profile_picture_url FROM users WHERE id = ?', [id]);
+  const existingUser = existingUserRows[0] || {};
+  
+  const finalEmail = email !== undefined ? (email || null) : existingUser.email;
+  const finalProfilePic = profilePictureUrl !== undefined ? (profilePictureUrl || null) : existingUser.profile_picture_url;
+
   const [result] = await pool.query(
     'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone_number = ?, profile_picture_url = ? WHERE id = ?',
-    [firstName, lastName, email, phone_number || null, profilePictureUrl || null, id]
+    [firstName, lastName, finalEmail, phone_number || null, finalProfilePic, id]
   );
   return result.affectedRows > 0;
 };

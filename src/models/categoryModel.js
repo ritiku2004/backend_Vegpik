@@ -1,7 +1,12 @@
 const pool = require('../config/db');
 
-const getAllCategories = async () => {
-  const [rows] = await pool.query('SELECT * FROM categories WHERE is_active = 1 ORDER BY sequence ASC, created_at DESC');
+const getAllCategories = async (includeInactive = false) => {
+  let query = 'SELECT * FROM categories';
+  if (!includeInactive) {
+    query += ' WHERE is_active = 1';
+  }
+  query += ' ORDER BY sequence ASC, created_at DESC';
+  const [rows] = await pool.query(query);
   return rows;
 };
 
@@ -59,11 +64,37 @@ const deleteCategory = async (id) => {
   return result.affectedRows > 0;
 };
 
+const toggleCategoryStatus = async (id, is_active) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [result] = await conn.query('UPDATE categories SET is_active = ? WHERE id = ?', [is_active ? 1 : 0, id]);
+    
+    // If deactivating, deactivate all products in this category
+    if (!is_active || is_active === '0' || is_active === 'false') {
+      await conn.query(`
+        UPDATE products p
+        JOIN product_categories pc ON pc.product_id = p.id
+        SET p.is_active = 0
+        WHERE pc.category_id = ?
+      `, [id]);
+    }
+    await conn.commit();
+    return result.affectedRows > 0;
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+};
+
 module.exports = {
   getAllCategories,
   getCategoryById,
   getCategoriesByShopId,
   createCategory,
   updateCategory,
-  deleteCategory
+  deleteCategory,
+  toggleCategoryStatus
 };

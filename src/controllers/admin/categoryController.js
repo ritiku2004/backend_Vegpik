@@ -3,7 +3,8 @@ const { responseHelper } = require('../../utils');
 
 const getCategories = async (req, res) => {
   try {
-    const categories = await categoryModel.getAllCategories();
+    // Pass true to include inactive categories for admin
+    const categories = await categoryModel.getAllCategories(true);
     return responseHelper.sendSuccess(res, 200, 'Categories fetched successfully', categories);
   } catch (error) {
     return responseHelper.sendError(res, 500, 'Failed to fetch categories', error);
@@ -63,10 +64,25 @@ const deleteCategory = async (req, res) => {
   }
 };
 
+const toggleCategoryStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    const success = await categoryModel.toggleCategoryStatus(id, is_active);
+    if (!success) {
+      return responseHelper.sendError(res, 404, 'Category not found');
+    }
+    return responseHelper.sendSuccess(res, 200, 'Category status updated successfully');
+  } catch (error) {
+    return responseHelper.sendError(res, 500, 'Failed to update category status', error);
+  }
+};
+
 module.exports = {
   getCategories,
   getCategoryById,
   createCategory,
   updateCategory,
-  deleteCategory
+  deleteCategory,
+  toggleCategoryStatus
 };

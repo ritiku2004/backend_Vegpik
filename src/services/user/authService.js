@@ -54,6 +54,8 @@ const verifyCustomOtpAndLogin = async (email, otpCode) => {
     { expiresIn: '90d' }
   );
 
+  user.profile_complete = !!(user.first_name && user.phone_number);
+
   return {
     user,
     token

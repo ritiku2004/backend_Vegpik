@@ -1,15 +1,20 @@
 const pool = require('../config/db');
 
-const getAllProducts = async () => {
-  const [rows] = await pool.query(`
+const getAllProducts = async (includeInactive = false) => {
+  let query = `
     SELECT p.*, c.name as category_name, GROUP_CONCAT(pc.category_id) as category_ids
     FROM products p
     JOIN categories c ON p.category_id = c.id
     LEFT JOIN product_categories pc ON p.id = pc.product_id
-    WHERE p.is_active = 1
+  `;
+  if (!includeInactive) {
+    query += ' WHERE p.is_active = 1';
+  }
+  query += `
     GROUP BY p.id
     ORDER BY p.created_at DESC
-  `);
+  `;
+  const [rows] = await pool.query(query);
   return rows;
 };
 
@@ -112,10 +117,16 @@ const deleteProduct = async (id) => {
   return result.affectedRows > 0;
 };
 
+const toggleProductStatus = async (id, is_active) => {
+  const [result] = await pool.query('UPDATE products SET is_active = ? WHERE id = ?', [is_active ? 1 : 0, id]);
+  return result.affectedRows > 0;
+};
+
 module.exports = {
   getAllProducts,
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  toggleProductStatus
 };

@@ -18,6 +18,8 @@ const getProfile = async (req, res) => {
       }
     }
 
+    user.profile_complete = !!(user.first_name && user.phone_number);
+
     return responseHelper.sendSuccess(res, 200, 'Profile fetched successfully', user);
   } catch (error) {
     console.error('Get Profile Error:', error);
@@ -49,11 +51,17 @@ const updateProfile = async (req, res) => {
     await userModel.updateUserProfile(userId, firstName, lastName, email, phone_number, profile_picture_url);
     
     const user = await userModel.getUserById(userId);
+    if (user) {
+      user.profile_complete = !!(user.first_name && user.phone_number);
+    }
 
     return responseHelper.sendSuccess(res, 200, 'Profile updated successfully', user);
   } catch (error) {
     console.error('Update Profile Error:', error);
-    return responseHelper.sendError(res, 500, 'Failed to update profile');
+    if (error.code === 'ER_DUP_ENTRY') {
+      return responseHelper.sendError(res, 400, 'Email or Phone Number is already registered to another account');
+    }
+    return responseHelper.sendError(res, 500, error.message || 'Failed to update profile');
   }
 };
 

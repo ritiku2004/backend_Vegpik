@@ -3,7 +3,7 @@ const { responseHelper } = require('../../utils');
 
 const getProducts = async (req, res) => {
   try {
-    const products = await productModel.getAllProducts();
+    const products = await productModel.getAllProducts(true);
     return responseHelper.sendSuccess(res, 200, 'Products fetched successfully', products);
   } catch (error) {
     return responseHelper.sendError(res, 500, 'Failed to fetch products', error);
@@ -56,10 +56,25 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+const toggleProductStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    const success = await productModel.toggleProductStatus(id, is_active);
+    if (!success) {
+      return responseHelper.sendError(res, 404, 'Product not found');
+    }
+    return responseHelper.sendSuccess(res, 200, 'Product status updated successfully');
+  } catch (error) {
+    return responseHelper.sendError(res, 500, 'Failed to update product status', error);
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  toggleProductStatus
 };
