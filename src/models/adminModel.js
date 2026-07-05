@@ -20,12 +20,16 @@ const createAdmin = async ({ email, passwordHash }) => {
 };
 
 const getAllAdmins = async () => {
-  const [rows] = await pool.query('SELECT id, email, created_at FROM admins ORDER BY id ASC');
+  const [rows] = await pool.query('SELECT id, email, is_active, created_at FROM admins ORDER BY id ASC');
   return rows;
 };
 
 const deleteAdmin = async (id) => {
   await pool.query('DELETE FROM admins WHERE id = ?', [id]);
+};
+
+const updateAdminStatus = async (id, isActive) => {
+  await pool.query('UPDATE admins SET is_active = ? WHERE id = ?', [isActive ? 1 : 0, id]);
 };
 
 module.exports = {
@@ -34,5 +38,6 @@ module.exports = {
   updateAdminPassword,
   createAdmin,
   getAllAdmins,
-  deleteAdmin
+  deleteAdmin,
+  updateAdminStatus
 };

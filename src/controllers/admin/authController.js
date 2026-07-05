@@ -12,6 +12,10 @@ const login = async (req, res) => {
       return responseHelper.sendError(res, 401, 'Invalid credentials');
     }
 
+    if (admin.is_active === 0 || admin.is_active === false) {
+      return responseHelper.sendError(res, 403, 'Access denied. Your account is currently inactive.');
+    }
+
     const isMatch = await bcrypt.compare(password, admin.password_hash);
     if (!isMatch) {
       return responseHelper.sendError(res, 401, 'Invalid credentials');
@@ -161,10 +165,42 @@ const deleteAdmin = async (req, res) => {
   }
 };
 
+const toggleAdminStatus = async (req, res) => {
+  try {
+    const currentAdminId = req.admin?.id;
+    if (!currentAdminId) {
+      return responseHelper.sendError(res, 401, 'Unauthorized');
+    }
+
+    if (req.admin?.email !== 'superadmin@vegpik.com') {
+      return responseHelper.sendError(res, 403, 'Access denied. Requires Super Admin privileges.');
+    }
+
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    if (parseInt(id) === parseInt(currentAdminId)) {
+      return responseHelper.sendError(res, 400, 'You cannot toggle status on your own admin account');
+    }
+
+    const admin = await adminModel.getAdminById(id);
+    if (!admin) {
+      return responseHelper.sendError(res, 404, 'Admin account not found');
+    }
+
+    await adminModel.updateAdminStatus(id, isActive);
+    return responseHelper.sendSuccess(res, 200, 'Admin status updated successfully');
+  } catch (error) {
+    console.error('Toggle admin status error:', error);
+    return responseHelper.sendError(res, 500, 'Failed to update admin status', error);
+  }
+};
+
 module.exports = {
   login,
   changePassword,
   createAdmin,
   getAllAdmins,
-  deleteAdmin
+  deleteAdmin,
+  toggleAdminStatus
 };
