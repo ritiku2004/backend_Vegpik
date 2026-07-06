@@ -1,20 +1,133 @@
 const pool = require('../config/db');
 
-const getAllProducts = async (includeInactive = false) => {
+const getAllProducts = async (filters = {}, includeInactive = false) => {
+  // Backward compatibility check
+  if (typeof filters === 'boolean') {
+    includeInactive = filters;
+    filters = {};
+  }
+
+  const selectColumns = `
+    p.id, p.category_id, p.name, p.description, p.brand, p.mrp_price,
+    p.quantity, p.quantity_type, p.sku, p.image_url, p.is_active,
+    p.discount_percentage, p.stock_quantity, p.type, p.is_available,
+    p.created_at, p.updated_at, c.name as category_name
+  `;
+
+  if (filters.forHome) {
+    // Optimised home screen products query using window functions and UNION
+    const homeQuery = `
+      (
+        SELECT ${selectColumns}
+        FROM products p
+        JOIN categories c ON p.category_id = c.id
+        WHERE p.is_active = 1 AND p.type = 'trending'
+        ORDER BY p.created_at DESC
+        LIMIT 10
+      )
+      UNION
+      (
+        SELECT ${selectColumns}
+        FROM products p
+        JOIN categories c ON p.category_id = c.id
+        WHERE p.is_active = 1 AND p.type = 'best deal'
+        ORDER BY p.created_at DESC
+        LIMIT 10
+      )
+      UNION
+      (
+        SELECT ${selectColumns}
+        FROM (
+          SELECT *, ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY created_at DESC) as rn
+          FROM products
+          WHERE is_active = 1
+        ) p
+        JOIN categories c ON p.category_id = c.id
+        WHERE p.rn <= 10
+      )
+    `;
+
+    const [rows] = await pool.query(homeQuery);
+    rows.forEach(r => {
+      if (typeof r.images === 'string') {
+        try { r.images = JSON.parse(r.images); } catch(e) { r.images = []; }
+      } else if (!r.images) {
+        r.images = [];
+      }
+    });
+    return rows;
+  }
+
+  // Dynamic filter query
   let query = `
-    SELECT p.*, c.name as category_name, GROUP_CONCAT(pc.category_id) as category_ids
+    SELECT p.*, c.name as category_name
     FROM products p
     JOIN categories c ON p.category_id = c.id
-    LEFT JOIN product_categories pc ON p.id = pc.product_id
   `;
+
+  const conditions = [];
+  const params = [];
+
   if (!includeInactive) {
-    query += ' WHERE p.is_active = 1';
+    conditions.push('p.is_active = 1');
   }
-  query += `
-    GROUP BY p.id
-    ORDER BY p.created_at DESC
-  `;
-  const [rows] = await pool.query(query);
+
+  if (filters.categoryId) {
+    conditions.push('p.category_id = ?');
+    params.push(filters.categoryId);
+  }
+
+  if (filters.search) {
+    conditions.push('(p.name LIKE ? OR p.description LIKE ? OR p.brand LIKE ?)');
+    const searchVal = `%${filters.search}%`;
+    params.push(searchVal, searchVal, searchVal);
+  }
+
+  if (filters.type) {
+    conditions.push('p.type = ?');
+    params.push(filters.type === 'best_deal' ? 'best deal' : filters.type);
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+
+  // Sorting
+  if (filters.sortBy === 'price-low-to-high') {
+    query += ' ORDER BY IF(p.discount_percentage > 0, p.mrp_price - (p.mrp_price * p.discount_percentage / 100), p.mrp_price) ASC';
+  } else if (filters.sortBy === 'price-high-to-low') {
+    query += ' ORDER BY IF(p.discount_percentage > 0, p.mrp_price - (p.mrp_price * p.discount_percentage / 100), p.mrp_price) DESC';
+  } else if (filters.sortBy === 'discount') {
+    query += ' ORDER BY p.discount_percentage DESC';
+  } else {
+    query += ' ORDER BY p.created_at DESC';
+  }
+
+  let total = 0;
+  // If limit is provided, fetch count for pagination
+  if (filters.limit) {
+    let countQuery = `
+      SELECT COUNT(DISTINCT p.id) as total
+      FROM products p
+      JOIN categories c ON p.category_id = c.id
+    `;
+    if (conditions.length > 0) {
+      countQuery += ' WHERE ' + conditions.join(' AND ');
+    }
+    const [countRows] = await pool.query(countQuery, params);
+    total = countRows[0].total;
+  }
+
+  // Apply limit and offset for pagination
+  if (filters.limit) {
+    const limitVal = parseInt(filters.limit, 10);
+    const pageVal = parseInt(filters.page || 1, 10);
+    const offsetVal = (pageVal - 1) * limitVal;
+    query += ' LIMIT ? OFFSET ?';
+    params.push(limitVal, offsetVal);
+  }
+
+  const [rows] = await pool.query(query, params);
   rows.forEach(r => {
     if (typeof r.images === 'string') {
       try { r.images = JSON.parse(r.images); } catch(e) { r.images = []; }
@@ -22,6 +135,18 @@ const getAllProducts = async (includeInactive = false) => {
       r.images = [];
     }
   });
+
+  if (filters.limit) {
+    const pageVal = parseInt(filters.page || 1, 10);
+    const limitVal = parseInt(filters.limit, 10);
+    const offsetVal = (pageVal - 1) * limitVal;
+    return {
+      products: rows,
+      totalCount: total,
+      hasMore: (offsetVal + rows.length) < total
+    };
+  }
+
   return rows;
 };
 

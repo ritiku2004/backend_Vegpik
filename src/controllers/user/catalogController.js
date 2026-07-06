@@ -85,9 +85,21 @@ const getNearestShop = async (req, res) => {
 
 const getProducts = async (req, res) => {
   try {
-    const products = await productModel.getAllProducts();
-    return responseHelper.sendSuccess(res, 200, 'Products fetched successfully', products);
+    const { categoryId, sortBy, page, limit, search, type, forHome } = req.query;
+    
+    const filters = {};
+    if (categoryId) filters.categoryId = categoryId;
+    if (sortBy) filters.sortBy = sortBy;
+    if (page) filters.page = parseInt(page, 10);
+    if (limit) filters.limit = parseInt(limit, 10);
+    if (search) filters.search = search;
+    if (type) filters.type = type;
+    if (forHome === 'true') filters.forHome = true;
+
+    const result = await productModel.getAllProducts(filters);
+    return responseHelper.sendSuccess(res, 200, 'Products fetched successfully', result);
   } catch (error) {
+    console.error('Error in getProducts controller:', error);
     return responseHelper.sendError(res, 500, 'Failed to fetch products', error);
   }
 };

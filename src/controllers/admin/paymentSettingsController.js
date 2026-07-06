@@ -20,6 +20,7 @@ exports.updatePaymentSettings = async (req, res) => {
       bank_name, 
       bank_account, 
       bank_iban,
+      bank_account_holder,
       is_cod_active,
       is_paypal_active,
       is_bank_transfer_active
@@ -32,10 +33,10 @@ exports.updatePaymentSettings = async (req, res) => {
 
     await pool.query(
       `UPDATE payment_settings 
-       SET paypal_id = ?, bank_name = ?, bank_account = ?, bank_iban = ?,
+       SET paypal_id = ?, bank_name = ?, bank_account = ?, bank_iban = ?, bank_account_holder = ?,
            is_cod_active = ?, is_paypal_active = ?, is_bank_transfer_active = ?
        WHERE id = 1`,
-      [paypal_id, bank_name, bank_account, bank_iban, cod, paypal, bank]
+      [paypal_id, bank_name, bank_account, bank_iban, bank_account_holder, cod, paypal, bank]
     );
     
     res.json({ message: 'Payment settings updated successfully' });
