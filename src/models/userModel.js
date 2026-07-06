@@ -134,41 +134,31 @@ const saveUserAddress = async (userId, addressData) => {
 
   if (existing.length > 0) {
     const addressId = existing[0].id;
+    // Soft delete the old address of the same type to keep historical order references intact
     await pool.query(
-      'UPDATE user_addresses SET address_line1 = ?, address_line2 = ?, city = ?, state = ?, latitude = ?, longitude = ?, is_default = ?, receiver_name = ?, receiver_mobile = ? WHERE id = ?',
-      [
-        address_line1,
-        address_line2 || null,
-        city || 'City',
-        state || 'Emirate',
-        latitude || null,
-        longitude || null,
-        is_default || false,
-        receiver_name || null,
-        receiver_mobile || null,
-        addressId
-      ]
+      'UPDATE user_addresses SET is_deleted = 1, is_default = 0 WHERE id = ?',
+      [addressId]
     );
-    return addressId;
-  } else {
-    const [result] = await pool.query(
-      'INSERT INTO user_addresses (user_id, title, address_line1, address_line2, city, state, latitude, longitude, is_default, receiver_name, receiver_mobile) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        userId,
-        cleanTitle,
-        address_line1,
-        address_line2 || null,
-        city || 'City',
-        state || 'Emirate',
-        latitude || null,
-        longitude || null,
-        is_default || false,
-        receiver_name || null,
-        receiver_mobile || null
-      ]
-    );
-    return result.insertId;
   }
+
+  // Always insert a new record so that past orders pointing to the old address are not affected
+  const [result] = await pool.query(
+    'INSERT INTO user_addresses (user_id, title, address_line1, address_line2, city, state, latitude, longitude, is_default, receiver_name, receiver_mobile) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      userId,
+      cleanTitle,
+      address_line1,
+      address_line2 || null,
+      city || 'City',
+      state || 'Emirate',
+      latitude || null,
+      longitude || null,
+      is_default || false,
+      receiver_name || null,
+      receiver_mobile || null
+    ]
+  );
+  return result.insertId;
 };
 
 const deleteUserAddress = async (userId, addressId) => {

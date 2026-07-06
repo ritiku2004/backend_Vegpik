@@ -24,6 +24,17 @@ const createOrder = async (req, res) => {
     
     console.log('[DEBUG] Extracted paymentMethod:', paymentMethod);
 
+    if (!addressId) {
+      return responseHelper.sendError(res, 400, 'Delivery address is required');
+    }
+
+    const { userModel } = require('../../models');
+    const userAddresses = await userModel.getUserAddresses(userId);
+    const hasAddress = userAddresses.some(a => String(a.id) === String(addressId));
+    if (!hasAddress) {
+      return responseHelper.sendError(res, 400, 'Delivery address is invalid or not found');
+    }
+
     let items = req.body.items;
     if (typeof items === 'string') {
       try {
