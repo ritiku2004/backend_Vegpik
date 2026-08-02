@@ -28,6 +28,10 @@ if (uploadDir !== localUploadsDir) {
   app.use('/uploads', express.static(uploadDir));
 }
 
+// Serve the apk versions directory
+const apkVersionsDir = path.join(__dirname, '../apk versions');
+app.use('/apk-versions', express.static(apkVersionsDir));
+
 // Middleware to dynamically rewrite local host/IP image urls in responses to match the requesting client host
 app.use((req, res, next) => {
   const originalJson = res.json;
